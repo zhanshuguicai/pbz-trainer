@@ -205,6 +205,7 @@ public partial class MainWindow : Window
         else
         {
             LinkState.Text = _last.IsPlaying ? "实时" : "实时（尚未进入游戏角色）";
+            LinkState.Foreground = Brush("Good");
             if (_last.SuiteVersion is { } running && PayloadSuiteVersion is { } shipped && running != shipped)
             {
                 LinkState.Text += $"——游戏内模块是旧版本 {running}（本程序带的是 {shipped}），新功能不可用：请退出游戏后在本页点“安装 / 更新”";
@@ -215,7 +216,6 @@ public partial class MainWindow : Window
                     Say($"游戏内模块是旧版本 {running}，请退出游戏后点“安装 / 更新”到 {shipped}");
                 }
             }
-            LinkState.Foreground = Brush("Good");
         }
 
         var h = _last.Health;
@@ -313,14 +313,25 @@ public partial class MainWindow : Window
         };
         SuiteState.Foreground = Brush(tone);
         var loaderOk = _game?.LoaderInstalled == true;
-        InstallButton.IsEnabled = loaderOk && state is PBZ.Core.Suite.SuiteState.NotInstalled or PBZ.Core.Suite.SuiteState.Outdated;
+        // A folder holding only this tool's own files (for example installed by another copy of the manager) can be
+        // taken over after the user confirms; anything else stays for manual inspection.
+        var takeOver = state is PBZ.Core.Suite.SuiteState.Modified or PBZ.Core.Suite.SuiteState.Foreign && _installer.OnlyOwnFiles();
+        if (takeOver) SuiteState.Text += "（都是本工具的文件，可点“安装 / 更新”覆盖）";
+        InstallButton.IsEnabled = loaderOk && (state is PBZ.Core.Suite.SuiteState.NotInstalled or PBZ.Core.Suite.SuiteState.Outdated || takeOver);
         UninstallButton.IsEnabled = state is PBZ.Core.Suite.SuiteState.Installed or PBZ.Core.Suite.SuiteState.Outdated;
         ShowLockAvailability();
     }
 
     private void InstallButton_Click(object sender, RoutedEventArgs e) => RunWhileGameClosed("安装", () =>
     {
-        _installer!.Install();
+        if (_installer!.GetState() is PBZ.Core.Suite.SuiteState.Modified or PBZ.Core.Suite.SuiteState.Foreign)
+        {
+            if (MessageBox.Show(this, "游戏目录里已有一份 PBZSuite（可能是别的修改器副本装的），内容和本程序的记录不一致。" + Environment.NewLine + Environment.NewLine +
+                    "它只包含本工具自己的文件。用本程序自带的版本覆盖它吗？运行记录（runtime 里的文件）会保留。",
+                    "覆盖安装", MessageBoxButton.OKCancel, MessageBoxImage.Question) != MessageBoxResult.OK) return "已取消";
+            _installer.TakeOver();
+        }
+        _installer.Install();
         SyncCompatibilityFlag();
         return "PBZSuite 已安装，下次启动游戏生效";
     });

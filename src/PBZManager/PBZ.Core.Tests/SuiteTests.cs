@@ -141,6 +141,27 @@ public sealed class SuiteTests
     }
 
     [TestMethod]
+    public void TakeOver_OnlyWhenFolderHoldsOwnFiles()
+    {
+        using var box = new Sandbox();
+        var installer = box.Installer();
+        installer.Install();
+        File.Delete(box.Manifest);                        // e.g. installed by another copy of the manager
+        Sandbox.Write(box.Target, "Scripts/main.lua", "-- older version");
+        Sandbox.Write(box.Target, "runtime/parry-cmd.txt", "x");
+        Assert.AreEqual(SuiteState.Foreign, installer.GetState());
+        Assert.IsTrue(installer.OnlyOwnFiles());
+        installer.TakeOver();
+        Assert.AreEqual(SuiteState.Outdated, installer.GetState());
+        installer.Install();
+        Assert.AreEqual(SuiteState.Installed, installer.GetState());
+
+        Sandbox.Write(box.Target, "Scripts/someone_elses.lua", "x");
+        Assert.IsFalse(installer.OnlyOwnFiles());
+        Assert.ThrowsException<InvalidOperationException>(() => installer.TakeOver());
+    }
+
+    [TestMethod]
     public void Config_WritesIncreasingRevisions()
     {
         using var box = new Sandbox();

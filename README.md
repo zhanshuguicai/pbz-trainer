@@ -7,6 +7,8 @@
 
 只修改本机进程中的单机游戏状态，不联网，不涉及他人。
 
+**普通玩家请直接下载 [Releases](https://github.com/zhanshuguicai/pbz-trainer/releases) 里的 `PBZTrainer-1.0.1-win-x64.zip`（自带运行环境、加载器和一键安装脚本），然后照着 [使用教程](docs/使用教程.md) 一步步做。**
+
 ## 功能
 
 | 页面 | 内容 |
@@ -31,7 +33,8 @@
 ## 需要
 
 - Windows 10/11，[.NET 10 桌面运行时](https://dotnet.microsoft.com/download/dotnet/10.0)
-- 游戏目录中已安装 UE4SS（本项目使用 UE4SS 3.0.1 + PR #1484 的 PBZ 配置）。仓库不包含 UE4SS 二进制；`release/install-loader.ps1` 可在提供加载器文件（放在 `release/loader/`）时完成安装与回滚。
+- 游戏目录中已安装 UE4SS（本项目使用 UE4SS 3.0.1 + PR #1484 的 PBZ 配置）。仓库不包含 UE4SS 二进制；发布包里带有加载器和 `安装加载器.bat`。从源码使用时，把加载器文件放在 `release/loader/` 再运行 `release/install-loader.ps1`（自动在 Steam 库中找游戏）。
+- 从源码构建需要 .NET 10 SDK；发布包自带运行环境，不需要另装。
 
 ## 构建与运行
 

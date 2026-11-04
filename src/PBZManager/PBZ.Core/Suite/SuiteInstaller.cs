@@ -61,6 +61,28 @@ public sealed class SuiteInstaller
         return true;
     }
 
+    // True if the target folder holds nothing but files this tool ships (any version) plus runtime output.
+    public bool OnlyOwnFiles()
+    {
+        if (!Directory.Exists(_targetDir)) return false;
+        var shipped = Scan(_payloadDir).Select(p => p.RelativePath).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        return Directory.GetFiles(_targetDir, "*", SearchOption.AllDirectories)
+            .Select(f => Path.GetRelativePath(_targetDir, f))
+            .All(rel => shipped.Contains(rel) || RuntimeFile.IsMatch(rel));
+    }
+
+    // Records the folder's current own files as ours, so the next Install updates them. Only after OnlyOwnFiles.
+    public void TakeOver()
+    {
+        if (!OnlyOwnFiles()) throw new InvalidOperationException("PBZSuite 目录里有不属于本工具的文件，请人工检查");
+        var files = Directory.GetFiles(_targetDir, "*", SearchOption.AllDirectories)
+            .Select(f => Path.GetRelativePath(_targetDir, f))
+            .Where(rel => !RuntimeFile.IsMatch(rel))
+            .Select(rel => new ManifestFile(rel, Hash(Path.Combine(_targetDir, rel)), new FileInfo(Path.Combine(_targetDir, rel)).Length))
+            .ToList();
+        SaveManifest(new SuiteManifest("PBZSuite", _targetDir, "INSTALLED", files, DateTimeOffset.Now));
+    }
+
     public void Install()
     {
         var state = GetState();

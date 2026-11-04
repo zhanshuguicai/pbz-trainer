@@ -1,9 +1,9 @@
-# Installs or removes the UE4SS loader (UE4SS + PR #1484 configs for PBZ) shipped in .\loader of this package.
+﻿# Installs or removes the UE4SS loader (UE4SS + PR #1484 configs for PBZ) shipped in .\loader of this package.
 # Install refuses to overwrite anything and records every file it writes; Rollback removes only those files.
 # Run with the game closed:  powershell -ExecutionPolicy Bypass -File install-loader.ps1 -Mode Install
 param(
     [Parameter(Mandatory)][ValidateSet('Install', 'Rollback')][string]$Mode,
-    [string]$GameDir = 'C:\Program Files (x86)\Steam\steamapps\common\PBZ\platform\steam'
+    [string]$GameDir = ''
 )
 $ErrorActionPreference = 'Stop'
 $stageRoot = Join-Path $PSScriptRoot 'loader'
@@ -14,7 +14,29 @@ $verified = @{
     '26367565' = '4415933CE33476F14C837ABB61A1B60AF8B78CD81783896501913A7AAC69E423'
 }
 if (Get-Process -Name PBZ -ErrorAction SilentlyContinue) { throw '请先正常退出游戏。' }
+
+# Without -GameDir: the default Steam folder, then every Steam library listed in libraryfolders.vdf.
+function Find-GameDir {
+    $suffix = 'steamapps\common\PBZ\platform\steam'
+    $roots = @('C:\Program Files (x86)\Steam')
+    $steam = (Get-ItemProperty -Path 'HKCU:\Software\Valve\Steam' -Name SteamPath -ErrorAction SilentlyContinue).SteamPath
+    if ($steam) {
+        $roots += $steam.Replace('/', '\')
+        $vdf = Join-Path $steam 'steamapps\libraryfolders.vdf'
+        if (Test-Path -LiteralPath $vdf) {
+            foreach ($m in [regex]::Matches((Get-Content -LiteralPath $vdf -Raw), '"path"\s+"([^"]+)"')) { $roots += $m.Groups[1].Value.Replace('\\', '\') }
+        }
+    }
+    foreach ($r in $roots | Select-Object -Unique) {
+        $candidate = Join-Path $r $suffix
+        if (Test-Path -LiteralPath (Join-Path $candidate 'PBZ.exe')) { return $candidate }
+    }
+    throw '找不到游戏。请用 -GameDir 指定 ...\steamapps\common\PBZ\platform\steam（见使用教程第 9 节）。'
+}
+if (-not $GameDir) { $GameDir = Find-GameDir }
+if (-not (Test-Path -LiteralPath (Join-Path $GameDir 'PBZ.exe'))) { throw "这个目录里没有 PBZ.exe：$GameDir" }
 $targetRoot = [IO.Path]::GetFullPath($GameDir).TrimEnd('\')
+Write-Output "游戏目录：$targetRoot"
 
 if ($Mode -eq 'Install') {
     if (Test-Path -LiteralPath $manifestPath) { throw '这个包已经安装过加载器（有 loader-install-manifest.json）。要重装请先 Rollback。' }
