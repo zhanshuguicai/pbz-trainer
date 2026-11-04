@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>PBZManager</AssemblyName>
+    <Version>1.0.1</Version>
+    <ApplicationIcon>app.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Resource Include="app.ico" />
+    <Resource Include="app.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PBZ.Core\PBZ.Core.csproj" />
+  </ItemGroup>
+
+  <!-- The in-game suite is shipped next to the manager and installed from there. -->
+  <ItemGroup>
+    <None Include="..\..\PBZSuite\**\*" LinkBase="payload\PBZSuite" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

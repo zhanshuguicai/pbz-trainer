@@ -1,0 +1,18 @@
+# Build output and IDE files
+**/bin/
+**/obj/
+.vs/
+*.user
+
+# Private or large: save backups, debug logs and game evidence, third-party UE4SS binaries
+backups/
+evidence/
+probe/*.zip
+probe/p1-stage/
+probe/ue4ss-1196/
+release/loader/
+release/loader-install-manifest.json
+
+# Files the game writes at run time (only the README is part of the suite)
+src/PBZSuite/runtime/*
+!src/PBZSuite/runtime/README.txt

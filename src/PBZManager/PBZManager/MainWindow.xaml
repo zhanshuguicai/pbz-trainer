@@ -1,0 +1,358 @@
+<Window x:Class="PBZManager.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:PBZManager"
+        Title="影之刃零 修改器" Height="760" Width="1400" MinWidth="900" MinHeight="560"
+        Icon="app.ico" FontFamily="Microsoft YaHei UI" FontSize="13" PreviewKeyDown="Window_PreviewKeyDown"
+        Background="{StaticResource Bg}" Foreground="{StaticResource Ink}">
+    <DockPanel Background="{StaticResource Bg}">
+        <!-- Header band: mark, calligraphic title, a red brush stroke -->
+        <Border DockPanel.Dock="Top" Padding="20,14,20,10" Background="#0D0B0C" BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Image Source="app.png" Width="46" Height="46" Margin="0,0,14,0" VerticalAlignment="Center" />
+                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="影之刃零" FontFamily="{StaticResource BrushFont}" FontSize="32" Foreground="{StaticResource Ink}" />
+                        <TextBlock Text="修改器" FontFamily="{StaticResource Kai}" FontSize="20" Foreground="{StaticResource Blade}" Margin="12,0,0,4" VerticalAlignment="Bottom" />
+                    </StackPanel>
+                    <Rectangle Height="3" Width="300" HorizontalAlignment="Left" Fill="{StaticResource BladeStroke}" Margin="0,2,0,0" />
+                </StackPanel>
+                <TextBlock Grid.Column="2" x:Name="VersionText" Text="v1.0.1 · 单机本地修改器" Foreground="{StaticResource Muted}" VerticalAlignment="Bottom" FontFamily="{StaticResource Kai}" FontSize="14" />
+            </Grid>
+        </Border>
+
+        <Border DockPanel.Dock="Bottom" Background="#0D0B0C" BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0" Padding="20,6">
+            <TextBlock x:Name="StatusLine" Foreground="{StaticResource Muted}" TextWrapping="Wrap" />
+        </Border>
+
+        <TabControl x:Name="Tabs" Padding="0" Margin="20,12,20,10">
+            <TabItem Header="状态">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Top">
+                        <GroupBox Header="游戏">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition />
+                                </Grid.RowDefinitions>
+                                <TextBlock Style="{StaticResource Label}" Text="安装位置" />
+                                <TextBlock Grid.Column="1" Style="{StaticResource Value}" x:Name="GamePath" Text="查找中…" />
+                                <TextBlock Grid.Row="1" Style="{StaticResource Label}" Text="版本校验" />
+                                <TextBlock Grid.Row="1" Grid.Column="1" Style="{StaticResource Value}" x:Name="GameVersion" Text="—" />
+                                <TextBlock Grid.Row="2" Style="{StaticResource Label}" Text="UE4SS 加载器" />
+                                <TextBlock Grid.Row="2" Grid.Column="1" Style="{StaticResource Value}" x:Name="LoaderState" Text="—" />
+                                <TextBlock Grid.Row="3" Style="{StaticResource Label}" Text="PBZSuite" />
+                                <TextBlock Grid.Row="3" Grid.Column="1" Style="{StaticResource Value}" x:Name="SuiteState" Text="—" />
+                                <StackPanel Grid.Row="4" Grid.Column="1" Orientation="Horizontal" Margin="0,6,0,2">
+                                    <Button x:Name="InstallButton" Content="安装 / 更新" Click="InstallButton_Click" IsEnabled="False" />
+                                    <Button x:Name="UninstallButton" Content="卸载" Click="UninstallButton_Click" IsEnabled="False" />
+                                </StackPanel>
+                            </Grid>
+                        </GroupBox>
+
+                        <GroupBox Header="实时状态">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition />
+                                </Grid.RowDefinitions>
+                                <TextBlock Style="{StaticResource Label}" Text="连接" />
+                                <TextBlock Grid.Column="1" Style="{StaticResource Value}" x:Name="LinkState" Text="等待游戏数据" />
+                                <TextBlock Grid.Row="1" Style="{StaticResource Label}" Text="血量" />
+                                <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal">
+                                    <ProgressBar x:Name="HealthBar" Width="220" Height="12" Maximum="1" Margin="0,0,10,0" VerticalAlignment="Center" />
+                                    <TextBlock Style="{StaticResource Value}" x:Name="HealthText" Text="—" />
+                                </StackPanel>
+                                <TextBlock Grid.Row="2" Style="{StaticResource Label}" Text="战斗" />
+                                <TextBlock Grid.Row="2" Grid.Column="1" Style="{StaticResource Value}" x:Name="CombatText" Text="—" />
+                                <TextBlock Grid.Row="3" Style="{StaticResource Label}" Text="药" />
+                                <TextBlock Grid.Row="3" Grid.Column="1" Style="{StaticResource Value}" x:Name="FlaskText" Text="—" />
+                                <TextBlock Grid.Row="4" Style="{StaticResource Label}" Text="会话" />
+                                <TextBlock Grid.Row="4" Grid.Column="1" Style="{StaticResource Value}" x:Name="SessionText" Foreground="{StaticResource Muted}" Text="—" />
+                            </Grid>
+                        </GroupBox>
+                    </StackPanel>
+
+                    <GroupBox Header="事件">
+                        <ListBox x:Name="EventList" BorderThickness="0" FontFamily="Consolas, Microsoft YaHei UI" />
+                    </GroupBox>
+                </DockPanel>
+            </TabItem>
+
+            <TabItem Header="条件播放器">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                        <StackPanel Orientation="Horizontal" Margin="0,2,0,8">
+                            <CheckBox x:Name="MusicEnabled" Content="启用条件播放器（需要本程序保持运行）" VerticalAlignment="Center"
+                                      Checked="MusicEnabled_Changed" Unchecked="MusicEnabled_Changed" />
+                            <TextBlock Style="{StaticResource Label}" Text="开关热键" Margin="24,3,8,3" VerticalAlignment="Center" />
+                            <Button x:Name="HotkeyMusicToggle" Tag="musictoggle" MinWidth="100" Click="Hotkey_Click" />
+                            <TextBlock Style="{StaticResource Label}" Text="停止当前歌曲" Margin="16,3,8,3" VerticalAlignment="Center" />
+                            <Button x:Name="HotkeyMusicStop" Tag="musicstop" MinWidth="100" Click="Hotkey_Click" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Style="{StaticResource Label}" Text="音量" VerticalAlignment="Center" />
+                            <Slider x:Name="VolumeSlider" Width="180" Minimum="0" Maximum="1" SmallChange="0.05" LargeChange="0.1"
+                                    VerticalAlignment="Center" ValueChanged="VolumeSlider_ValueChanged" />
+                            <TextBlock Style="{StaticResource Label}" Text="淡出秒数" Margin="20,3,8,3" VerticalAlignment="Center" />
+                            <TextBox x:Name="FadeSeconds" Width="48" VerticalAlignment="Center" LostFocus="FadeSeconds_LostFocus" />
+                            <TextBlock x:Name="NowPlaying" Style="{StaticResource Value}" Margin="20,3,0,3" Foreground="{StaticResource Muted}" Text="未在播放" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </StackPanel>
+
+                    <StackPanel DockPanel.Dock="Bottom" Margin="0,8,0,0">
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="添加规则" Click="AddRule_Click" />
+                            <Button Content="删除选中" Click="DeleteRule_Click" />
+                            <Button Content="试听选中" Click="PreviewRule_Click" />
+                            <Button Content="停止" Click="StopMusic_Click" />
+                            <Button Content="恢复默认两条" Click="ResetRules_Click" />
+                            <Button Content="导出规则…" Click="ExportRules_Click" />
+                            <Button Content="导入规则…" Click="ImportRules_Click" />
+                        </StackPanel>
+                        <TextBlock Foreground="{StaticResource Muted}" Margin="0,8,0,0" TextWrapping="Wrap"
+                                   Text="同时触发时只放优先级最高的一首；正在放的歌只会被优先级不低于它的规则打断。&quot;每场一次&quot;按战斗计；不在战斗中的触发每次都会放。&#x0a;参数：血量类为百分比，围攻为敌人数，战斗持续为秒数；鼠标停在参数格上可看说明。附加条件要全部满足才播放（例如药喝空只在战斗中放）。&#x0a;淡出条件：歌曲循环播放，直到发生该事件才淡出；选&quot;不淡出&quot;则只放一遍（可在&quot;播放设置&quot;里改）。&#x0a;播放设置：每条规则可放多首歌（随机或轮流）、单独音量、从第几秒开始、淡入淡出时长、冷却时间。Boss 类事件看屏幕上的 Boss 血条。杀气、绝技、影魂类事件需要 PBZSuite 1.0.1。" />
+                    </StackPanel>
+
+                    <DataGrid x:Name="RuleGrid" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
+                              HeadersVisibility="Column" SelectionMode="Single" RowHeight="30" GridLinesVisibility="Horizontal"
+>
+                        <DataGrid.Resources>
+                            <Style x:Key="GridCombo" TargetType="ComboBox">
+                                <Setter Property="VerticalAlignment" Value="Center" />
+                            </Style>
+                            <Style x:Key="CellText" TargetType="TextBlock">
+                                <Setter Property="VerticalAlignment" Value="Center" />
+                                <Setter Property="Margin" Value="4,0" />
+                            </Style>
+                        </DataGrid.Resources>
+                        <DataGrid.Columns>
+                            <DataGridTemplateColumn Header="启用" Width="44">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <CheckBox IsChecked="{Binding Enabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="名称" Width="90" Binding="{Binding Name, UpdateSourceTrigger=PropertyChanged}" ElementStyle="{StaticResource CellText}" />
+                            <DataGridComboBoxColumn x:Name="TriggerColumn" Header="触发事件" Width="150"
+                                                    SelectedValueBinding="{Binding Trigger, UpdateSourceTrigger=PropertyChanged}"
+                                                    SelectedValuePath="Value" DisplayMemberPath="Name"  ElementStyle="{StaticResource GridCombo}" />
+                            <DataGridTemplateColumn Header="参数" Width="70">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <DockPanel ToolTip="{Binding TriggerHelp}" Visibility="{Binding UsesThreshold, Converter={StaticResource BoolVis}}">
+                                            <TextBlock DockPanel.Dock="Right" Text="{Binding ParamUnit}" VerticalAlignment="Center" Margin="2,0" />
+                                            <TextBox Text="{Binding ThresholdPercent, UpdateSourceTrigger=LostFocus}" IsEnabled="{Binding UsesThreshold}"
+                                                     BorderThickness="0" Background="Transparent" VerticalAlignment="Center" />
+                                        </DockPanel>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="附加条件" Width="150">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <DockPanel>
+                                            <Button DockPanel.Dock="Right" Content="编辑…" Padding="6,0" Margin="4,2,2,2" Click="EditConditions_Click" />
+                                            <TextBlock Text="{Binding ConditionsSummary}" ToolTip="{Binding ConditionsSummary}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                        </DockPanel>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="歌曲" Width="*">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <DockPanel>
+                                            <Button DockPanel.Dock="Right" Content="选择…" Padding="8,0" Margin="6,2,2,2" Click="PickRuleTrack_Click" />
+                                            <TextBlock Text="{Binding TrackName}" ToolTip="{Binding TrackTip}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                        </DockPanel>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="播放设置" Width="150">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <DockPanel>
+                                            <Button DockPanel.Dock="Right" Content="设置…" Padding="6,0" Margin="4,2,2,2" Click="EditPlayback_Click" />
+                                            <TextBlock Text="{Binding PlaybackSummary}" ToolTip="{Binding PlaybackSummary}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                        </DockPanel>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="优先级" Width="56" Binding="{Binding Priority, UpdateSourceTrigger=LostFocus}" ElementStyle="{StaticResource CellText}" />
+                            <DataGridComboBoxColumn x:Name="ScopeColumn" Header="次数" Width="88"
+                                                    SelectedValueBinding="{Binding Scope, UpdateSourceTrigger=PropertyChanged}"
+                                                    SelectedValuePath="Value" DisplayMemberPath="Name"  ElementStyle="{StaticResource GridCombo}" />
+                            <DataGridComboBoxColumn x:Name="StopColumn" Header="淡出条件" Width="150"
+                                                    SelectedValueBinding="{Binding StopTrigger, UpdateSourceTrigger=PropertyChanged}"
+                                                    SelectedValuePath="Value" DisplayMemberPath="Name"  ElementStyle="{StaticResource GridCombo}" />
+                            <DataGridTemplateColumn Header="淡出参数" Width="70">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <DockPanel Visibility="{Binding StopUsesThreshold, Converter={StaticResource BoolVis}}">
+                                            <TextBlock DockPanel.Dock="Right" Text="{Binding StopUnit}" VerticalAlignment="Center" Margin="2,0" />
+                                            <TextBox Text="{Binding StopThreshold, UpdateSourceTrigger=LostFocus}" IsEnabled="{Binding StopUsesThreshold}"
+                                                     BorderThickness="0" Background="Transparent" VerticalAlignment="Center" />
+                                        </DockPanel>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </DockPanel>
+            </TabItem>
+
+            <TabItem Header="数值修改">
+                <StackPanel>
+                    <GroupBox Header="锁定数值">
+                        <StackPanel>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="150" />
+                                    <ColumnDefinition Width="150" />
+                                    <ColumnDefinition Width="170" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="26" />
+                                    <RowDefinition Height="40" />
+                                    <RowDefinition Height="34" /><RowDefinition Height="34" /><RowDefinition Height="34" /><RowDefinition Height="34" />
+                                </Grid.RowDefinitions>
+                                <TextBlock Style="{StaticResource Label}" Text="项目" VerticalAlignment="Bottom" />
+                                <TextBlock Grid.Column="1" Style="{StaticResource Label}" Text="当前 / 上限" VerticalAlignment="Bottom" />
+                                <TextBlock Grid.Column="2" Style="{StaticResource Label}" Text="固定为（留空 = 锁满）" VerticalAlignment="Bottom" />
+                                <TextBlock Grid.Column="3" Style="{StaticResource Label}" Text="热键（点击修改）" VerticalAlignment="Bottom" />
+
+                                <CheckBox Grid.Row="1" x:Name="LockMaster" Content="启用（总开关）" FontWeight="SemiBold" VerticalAlignment="Center"
+                                          Checked="LockMaster_Changed" Unchecked="LockMaster_Changed" />
+                                <Button Grid.Row="1" Grid.Column="3" x:Name="HotkeyToggle" Tag="toggle" MinWidth="110" Margin="0,5" Click="Hotkey_Click" />
+                                <TextBlock Grid.Row="1" Grid.Column="4" x:Name="LockGameState" Style="{StaticResource Value}" Margin="16,3,0,3" VerticalAlignment="Center"
+                                           Foreground="{StaticResource Muted}" Text="—" />
+
+                                <CheckBox Grid.Row="2" x:Name="LockHealth" Content="血量" VerticalAlignment="Center" Checked="LockItem_Changed" Unchecked="LockItem_Changed" />
+                                <TextBlock Grid.Row="2" Grid.Column="1" x:Name="LiveHealth" Style="{StaticResource Value}" VerticalAlignment="Center" Text="—" />
+                                <TextBox Grid.Row="2" Grid.Column="2" x:Name="ValueHealth" Tag="health" Width="140" HorizontalAlignment="Left" Margin="0,5" VerticalContentAlignment="Center"
+                                         LostFocus="Value_LostFocus" KeyDown="Value_KeyDown" />
+                                <Button Grid.Row="2" Grid.Column="3" x:Name="HotkeyHealth" Tag="health" MinWidth="110" Margin="0,3" Click="Hotkey_Click" />
+
+                                <CheckBox Grid.Row="3" x:Name="LockShachi" Content="杀气" VerticalAlignment="Center" Checked="LockItem_Changed" Unchecked="LockItem_Changed" />
+                                <TextBlock Grid.Row="3" Grid.Column="1" x:Name="LiveShachi" Style="{StaticResource Value}" VerticalAlignment="Center" Text="—" />
+                                <TextBox Grid.Row="3" Grid.Column="2" x:Name="ValueShachi" Tag="shachi" Width="140" HorizontalAlignment="Left" Margin="0,5" VerticalContentAlignment="Center"
+                                         LostFocus="Value_LostFocus" KeyDown="Value_KeyDown" />
+                                <Button Grid.Row="3" Grid.Column="3" x:Name="HotkeyShachi" Tag="shachi" MinWidth="110" Margin="0,3" Click="Hotkey_Click" />
+
+                                <CheckBox Grid.Row="4" x:Name="LockUltimate" Content="绝技能量" VerticalAlignment="Center" Checked="LockItem_Changed" Unchecked="LockItem_Changed" />
+                                <TextBlock Grid.Row="4" Grid.Column="1" x:Name="LiveUltimate" Style="{StaticResource Value}" VerticalAlignment="Center" Text="—" />
+                                <TextBox Grid.Row="4" Grid.Column="2" x:Name="ValueUltimate" Tag="ultimate" Width="140" HorizontalAlignment="Left" Margin="0,5" VerticalContentAlignment="Center"
+                                         LostFocus="Value_LostFocus" KeyDown="Value_KeyDown" />
+                                <Button Grid.Row="4" Grid.Column="3" x:Name="HotkeyUltimate" Tag="ultimate" MinWidth="110" Margin="0,3" Click="Hotkey_Click" />
+
+                                <CheckBox Grid.Row="5" x:Name="LockSpirit" Content="影/魂点数" VerticalAlignment="Center" Checked="LockItem_Changed" Unchecked="LockItem_Changed" />
+                                <TextBlock Grid.Row="5" Grid.Column="1" x:Name="LiveSpirit" Style="{StaticResource Value}" VerticalAlignment="Center" Text="—" />
+                                <TextBox Grid.Row="5" Grid.Column="2" x:Name="ValueSpirit" Tag="spirit" Width="140" HorizontalAlignment="Left" Margin="0,5" VerticalContentAlignment="Center"
+                                         LostFocus="Value_LostFocus" KeyDown="Value_KeyDown" />
+                                <Button Grid.Row="5" Grid.Column="3" x:Name="HotkeySpirit" Tag="spirit" MinWidth="110" Margin="0,3" Click="Hotkey_Click" />
+                            </Grid>
+                            <TextBlock x:Name="LockBlocked" Style="{StaticResource Value}" Foreground="{StaticResource Warn}" Visibility="Collapsed" />
+                            <CheckBox x:Name="LockSound" Content="用热键切换时播放提示音（开：升调，关：降调）" Margin="0,8,0,0"
+                                      Checked="LockSound_Changed" Unchecked="LockSound_Changed" />
+                        </StackPanel>
+                    </GroupBox>
+                    <TextBlock Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="2,0"
+                               Text="总开关打开后，勾选的项目会一直保持在设定值：留空表示锁满（低于上限就补满），填数字表示固定为这个数（高了压回，低了补上）。超过上限的数按上限算；血量至少为 1；角色阵亡时不会把血量补回。&#x0a;“当前 / 上限”随游戏实时刷新（约每 0.2 秒），上限会随装备和成长变化。&#x0a;改键位：点击热键按钮，再按下新的组合键；Esc 取消，Backspace 或 Delete 清除。单个字母、数字键必须配 Ctrl/Alt/Shift。&#x0a;热键在游戏全屏时也有效，切换后约半秒内生效。本程序每次启动时锁定都是关闭的；关闭本程序时锁定会自动关闭。" />
+                </StackPanel>
+            </TabItem>
+            <TabItem Header="物品">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                            <Button x:Name="ReadItemsButton" Content="从游戏读取" Click="ReadItems_Click" />
+                            <CheckBox x:Name="EditableOnly" Content="只显示可修改的" IsChecked="True" VerticalAlignment="Center" Margin="8,0,0,0"
+                                      Checked="EditableOnly_Changed" Unchecked="EditableOnly_Changed" />
+                            <TextBlock x:Name="ItemsState" Style="{StaticResource Value}" Foreground="{StaticResource Muted}" Margin="16,3,0,3" VerticalAlignment="Center" Text="还没有读取" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Style="{StaticResource Label}" Text="钱（ConsciousnessDust）" VerticalAlignment="Center" />
+                            <TextBlock x:Name="MoneyText" Style="{StaticResource Value}" MinWidth="90" VerticalAlignment="Center" Text="—" />
+                            <TextBlock Style="{StaticResource Label}" Text="改为" Margin="12,3,8,3" VerticalAlignment="Center" />
+                            <TextBox x:Name="MoneyNew" Width="120" VerticalContentAlignment="Center" />
+                            <Button Content="修改钱" Margin="8,0,0,0" Click="ApplyMoney_Click" />
+                        </StackPanel>
+                    </StackPanel>
+                    <StackPanel DockPanel.Dock="Bottom" Margin="0,8,0,0">
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="应用修改" Click="ApplyItems_Click" />
+                            <Button Content="选中项填 999" Click="Fill999_Click" />
+                            <Button Content="清空输入" Click="ClearItemInputs_Click" />
+                        </StackPanel>
+                        <TextBlock Foreground="{StaticResource Muted}" Margin="0,8,0,0" TextWrapping="Wrap"
+                                   Text="在“改为”一列填新数量，再点“应用修改”；留空的不改。只开放强化、摄魂、养成材料和钱，剧情物品、珍宝、书页等只能查看。&#x0a;修改通过游戏自己的加减物品函数完成，改完会自动重新读取核对。本程序每次运行第一次修改前，会把存档备份到程序旁的 data\save-backups。需要游戏在运行、已进入角色，PBZSuite 1.0.1。" />
+                    </StackPanel>
+                    <DataGrid x:Name="ItemGrid" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
+                              HeadersVisibility="Column" SelectionMode="Extended" RowHeight="28" GridLinesVisibility="Horizontal"
+>
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="分类" Width="120" Binding="{Binding Category}" IsReadOnly="True" />
+                            <DataGridTextColumn Header="名称" Width="*" Binding="{Binding Name}" IsReadOnly="True" />
+                            <DataGridTextColumn Header="ID" Width="170" Binding="{Binding Id}" IsReadOnly="True" />
+                            <DataGridTextColumn Header="当前" Width="70" Binding="{Binding Amount}" IsReadOnly="True" />
+                            <DataGridTextColumn Header="历史最多" Width="70" Binding="{Binding HasMax}" IsReadOnly="True" />
+                            <DataGridTemplateColumn Header="改为" Width="90">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBox Text="{Binding NewAmount, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding Editable}"
+                                                 BorderThickness="0" Background="Transparent" VerticalAlignment="Center" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </DockPanel>
+            </TabItem>
+            <TabItem Header="战斗辅助">
+                <StackPanel>
+                    <GroupBox Header="自动弹反 / 闪避">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,2,0,8">
+                                <CheckBox x:Name="ParryMaster" Width="170" Content="启用（总开关）" FontWeight="SemiBold" VerticalAlignment="Center"
+                                          Checked="ParryMaster_Changed" Unchecked="ParryMaster_Changed" />
+                                <Button x:Name="HotkeyParry" Tag="parry" MinWidth="110" Click="Hotkey_Click" />
+                                <TextBlock x:Name="ParryState" Style="{StaticResource Value}" Margin="16,3,0,3" VerticalAlignment="Center"
+                                           Foreground="{StaticResource Muted}" Text="游戏未连接" />
+                            </StackPanel>
+                            <CheckBox x:Name="ParryDeflect" Content="可弹反的攻击自动弹反" Margin="0,2" Checked="ParryOption_Changed" Unchecked="ParryOption_Changed" />
+                            <CheckBox x:Name="ParryDodge" Content="只能闪避的攻击（红光等）自动闪避" Margin="0,2" Checked="ParryOption_Changed" Unchecked="ParryOption_Changed" />
+                            <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                                <TextBlock Style="{StaticResource Label}" Text="弹反键" VerticalAlignment="Center" />
+                                <ComboBox x:Name="ParryDeflectKey" Width="110" DisplayMemberPath="Name" SelectedValuePath="Id" SelectionChanged="ParryKey_Changed" />
+                                <TextBlock Style="{StaticResource Label}" Text="闪避键" Margin="16,3,12,3" VerticalAlignment="Center" />
+                                <ComboBox x:Name="ParryDodgeKey" Width="110" DisplayMemberPath="Name" SelectedValuePath="Id" SelectionChanged="ParryKey_Changed" />
+                                <TextBlock Style="{StaticResource Label}" Text="（要和游戏里的按键设置一致）" Margin="12,3,0,3" VerticalAlignment="Center" />
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                                <TextBlock Style="{StaticResource Label}" Text="提前量（命中前多少毫秒按下，0–300）" VerticalAlignment="Center" />
+                                <TextBox x:Name="ParryLead" Width="70" VerticalContentAlignment="Center" LostFocus="ParryLead_LostFocus" KeyDown="ParryLead_KeyDown" />
+                            </StackPanel>
+                            <TextBlock x:Name="ParryStats" Style="{StaticResource Value}" Margin="0,8,0,0" Text="本局：—" />
+                            <TextBlock x:Name="ParryBlocked" Style="{StaticResource Value}" Foreground="{StaticResource Warn}" Visibility="Collapsed" />
+                        </StackPanel>
+                    </GroupBox>
+                    <TextBlock Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="2,0"
+                               Text="原理：敌人出招时游戏会提前约 0.3 秒通知被攻击的角色（红光等只能闪避的攻击约提前 0.5 秒）。打开后，游戏内模块在命中前按“提前量”通知本程序，本程序替你按一下真实的弹反键或闪避键（短按）；远程波等没有确定命中时间的攻击，出现时立刻处理。只在游戏窗口处于前台时才会按键。&#x0a;用手柄玩也可以用：游戏同时接受键鼠和手柄，本程序按的是键鼠按键（界面提示图标可能会短暂切换）。&#x0a;统计：“受击”= 自动操作后血量仍然下降，可用来调提前量：受击多就加大或减小提前量再试。&#x0a;热键是系统级的（游戏全屏也有效），点按钮可以改。本程序每次启动时此功能是关闭的；关闭本程序时自动关闭。需要 PBZSuite 1.0.1。" />
+                </StackPanel>
+            </TabItem>
+        </TabControl>
+    </DockPanel>
+</Window>
