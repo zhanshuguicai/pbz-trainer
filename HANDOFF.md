@@ -8,10 +8,10 @@
 
 ## 当前状态（2026-11-04，1.0.1）
 - 全部功能完成并经用户实测：状态与遥测、条件播放器（22 种事件含 Boss、附加条件、淡出、每条规则播放设置、热键、导入导出）、数值修改（锁满/固定值）、物品与钱、自动弹反/闪避（真实按键，未受击约 85%）。界面按《影之刃零》风格重做。
-- 版本 1.0.1（修改器与 PBZSuite）。公开仓库 https://github.com/zhanshuguicai/pbz-trainer（main，标签 v1.0.1），只含代码与文档；本机目录即该仓库的工作副本。
+- 版本 1.0.1（修改器与 PBZSuite）。公开仓库 https://github.com/zhanshuguicai/pbz-trainer（main，标签 v1.0.1 = 提交 e648ff9），只含代码与文档；本机目录即该仓库的工作副本。Release：https://github.com/zhanshuguicai/pbz-trainer/releases/tag/v1.0.1 ，附 `PBZTrainer-1.0.1-win-x64.zip`（自带运行时的单文件修改器、加载器、一键脚本、保姆式教程 docs/使用教程.md）。
 - 游戏：Steam appid 4115450，已验证 build 26266538 与 26367565（2026-11-04 03:29 更新）。游戏更新后修改器自动停用写入功能。
 - 游戏目录：UE4SS + PR #1484 配置、`Mods/PBZSuite`（游戏里是 1.0.0 的 Boss 修复版，1.0.1 只差版本号，待用修改器更新）、`Mods/PBZProbe`（只读探针）。
-- 代码：`src/PBZSuite/`（Lua）、`src/PBZManager/PBZManager.sln`（PBZ.Core、94 个测试、WPF）。修改器数据在 exe 旁 `data\`。
+- 代码：`src/PBZSuite/`（Lua）、`src/PBZManager/PBZManager.sln`（PBZ.Core、95 个测试、WPF）。修改器数据在 exe 旁 `data\`。
 - 用户未要求派工，全部由 Claude（Opus）执行。
 
 ## 进行中
@@ -19,7 +19,7 @@
 
 ## 下一步
 1. 用户关修改器后 `dotnet build` 重编正式输出，再"安装 / 更新"到 PBZSuite 1.0.1。
-2. 可选：GitHub Release 附打包的修改器（`dotnet publish -c Release`，需用户确认）；为仓库选许可证（未替用户选）。
+2. 可选：为仓库选许可证（未替用户选）；提交邮箱是否改为 GitHub noreply。发布新版按 [发布日志](docs/worklog/2026-11-04-release-package-claude.md) 的步骤打包。
 3. 补测：钱修改与读档保持、物品中文名（目前显示 ID）、手柄虚拟输入（产品规则 22）。
 
 ## 已知问题与坑
@@ -50,8 +50,8 @@
 - 全部撤销（游戏退出后，按顺序）：修改器"卸载"或 `tools/pbzsuite.ps1 -Mode Rollback` → `probe/p2-probe.ps1 -Mode Rollback` → `probe/p1-loader.ps1 -Mode Rollback`。
 
 ## 最近工作日志
+- [Release 1.0.1 发布包与教程](docs/worklog/2026-11-04-release-package-claude.md)
 - [界面主题与 1.0.1 发布](docs/worklog/2026-11-04-ui-theme-release-101-claude.md)
 - [音乐 1.0 扩充、T6 开头](docs/worklog/2026-11-04-music-boss-rich-claude.md)
-- [T5b 改为真实按键](docs/worklog/2026-11-04-t5b-real-input-claude.md)
 - [T5a 完成、T5b 调查与探针](docs/worklog/2026-11-04-t5a-done-t5b-probe-claude.md)
 - [T8 数值修改、热键、图标](docs/worklog/2026-11-04-t8-value-lock-claude.md)
