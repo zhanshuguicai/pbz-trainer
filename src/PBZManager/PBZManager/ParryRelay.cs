@@ -10,33 +10,38 @@ namespace PBZManager;
 // Injected Enhanced Input does nothing in this game, so real key events are the working path (evidence/t5b).
 public sealed class ParryRelay : IDisposable
 {
-    private const int PollMs = 2;
-    private const int HoldMs = 40; // short tap: a longer Shift press turns into sprint
+    private const int TickMs = 1;
 
     private readonly string _file;
     private readonly Thread _thread;
+    private readonly ParryScheduler _scheduler = new();
+    private readonly Stopwatch _clock = Stopwatch.StartNew();
     private volatile bool _running = true;
+    private volatile bool _enabled;
     private ParryCommand? _last;
     private bool _baselined;
 
-    public ParryRelay(string runtimeDir)
+    private readonly StreamWriter? _log;
+
+    // logFile: one line per command received and per key press, to trace a missed deflect afterwards.
+    public ParryRelay(string runtimeDir, string? logFile = null)
     {
         _file = Path.Combine(runtimeDir, "parry-cmd.txt");
-        _thread = new Thread(Run) { IsBackground = true, Name = "ParryRelay", Priority = ThreadPriority.AboveNormal };
+        try { if (logFile is not null) _log = new StreamWriter(logFile, append: true) { AutoFlush = true }; }
+        catch (IOException) { _log = null; }
+        _thread = new Thread(Run) { IsBackground = true, Name = "ParryRelay", Priority = ThreadPriority.Highest };
         _thread.Start();
     }
 
-    public volatile bool Enabled;
+    public bool Enabled { get => _enabled; set => _enabled = value; }
     public volatile PressKey DeflectKey = PressKey.Find("RightMouse", "RightMouse");
     public volatile PressKey DodgeKey = PressKey.Find("LeftShift", "LeftShift");
 
-    public int Presses => _presses;
-    public int SkippedNotForeground => _skipped;
-    private int _presses;
-    private int _skipped;
+    // Combo-hold mode: keep the deflect key down through a combo instead of tapping once per hit.
+    public bool ComboHold { get => _scheduler.ComboHold; set => _scheduler.ComboHold = value; }
 
-    // Raised on the relay thread.
-    public event Action<ParryCommand, bool>? Handled;
+    public int Presses => _scheduler.Presses;
+    public int SkippedNotForeground => _scheduler.SkippedNotForeground;
 
     private void Run()
     {
@@ -45,34 +50,50 @@ public sealed class ParryRelay : IDisposable
         {
             while (_running)
             {
-                Thread.Sleep(PollMs);
-                var cmd = ParryCommand.TryParse(ReadFile());
-                // Commands already in the file when the relay is switched on are old: remember them, never press them.
-                if (!Enabled)
+                Thread.Sleep(TickMs);
+                var now = _clock.ElapsedMilliseconds;
+                if (!_enabled)
                 {
+                    // Switched off: let go of anything held, forget the queue, and treat what is in the file as old.
+                    if (_baselined) { Apply(_scheduler.ReleaseAll()); _scheduler.Clear(); }
                     _baselined = false;
                     continue;
                 }
+                var commands = ParryCommand.ParseAll(ReadFile());
                 if (!_baselined)
                 {
-                    _last = cmd;
+                    _last = commands.LastOrDefault();
                     _baselined = true;
                     continue;
                 }
-                if (cmd is null || !ParryCommand.IsNew(_last, cmd)) continue;
-                _last = cmd;
-                var pressed = false;
-                if (IsGameForeground())
+                foreach (var c in commands)
                 {
-                    Press(cmd.Dodge ? DodgeKey : DeflectKey);
-                    Interlocked.Increment(ref _presses);
-                    pressed = true;
+                    if (!ParryCommand.IsNew(_last, c)) continue;
+                    _last = c;
+                    _scheduler.Add(c, now);
+                    Log($"#{c.Seq} received {(c.Dodge ? "dodge" : c.Hold ? "hold" : "deflect")} press in {c.PressInMs} ms, hit in {c.HitInMs} ms");
                 }
-                else Interlocked.Increment(ref _skipped);
-                Handled?.Invoke(cmd, pressed);
+                Apply(_scheduler.Tick(now, IsGameForeground()));
+                foreach (var (seq, pressed, late) in _scheduler.LastHandled)
+                    Log(pressed ? $"#{seq} pressed ({late} ms late)" : $"#{seq} skipped: game window not in front");
             }
         }
-        finally { TimeEndPeriod(1); }
+        finally
+        {
+            Apply(_scheduler.ReleaseAll());
+            TimeEndPeriod(1);
+        }
+    }
+
+    private void Log(string line)
+    {
+        try { _log?.WriteLine($"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} {line}"); }
+        catch (Exception ex) when (ex is IOException or ObjectDisposedException) { } // closing while the thread logs
+    }
+
+    private void Apply(List<KeyEvent> events)
+    {
+        foreach (var e in events) Send(Make(e.Dodge ? DodgeKey : DeflectKey, e.Down));
     }
 
     private string? ReadFile()
@@ -81,7 +102,7 @@ public sealed class ParryRelay : IDisposable
         {
             using var fs = new FileStream(_file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
             using var r = new StreamReader(fs);
-            return r.ReadLine();
+            return r.ReadToEnd();
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { return null; }
     }
@@ -103,13 +124,6 @@ public sealed class ParryRelay : IDisposable
             return true;
         }
         catch (ArgumentException) { return false; }
-    }
-
-    private static void Press(PressKey key)
-    {
-        Send(Make(key, down: true));
-        Thread.Sleep(HoldMs);
-        Send(Make(key, down: false));
     }
 
     private static INPUT Make(PressKey key, bool down)
@@ -136,6 +150,7 @@ public sealed class ParryRelay : IDisposable
     {
         _running = false;
         _thread.Join(500);
+        _log?.Dispose();
     }
 
     [StructLayout(LayoutKind.Sequential)]

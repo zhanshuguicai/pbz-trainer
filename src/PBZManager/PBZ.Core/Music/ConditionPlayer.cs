@@ -354,7 +354,8 @@ public sealed class ConditionPlayer
 
         // Rule 4 generalised: the highest priority wins; the others in the same sample are used up.
         var winner = candidates.OrderByDescending(c => c.rule.Priority).ThenBy(c => c.order).First().rule;
-        if (playing is not null && playing.Priority > winner.Priority) return;
+        // A song that is playing is only interrupted by a strictly higher priority (user, 2026-11-07).
+        if (playing is not null && playing.Priority >= winner.Priority) return;
         var track = PickTrack(winner);
         if (track is null)
         {

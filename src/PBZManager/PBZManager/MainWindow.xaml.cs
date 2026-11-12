@@ -29,6 +29,8 @@ public partial class MainWindow : Window
     // SUITE_VERSION of the PBZSuite shipped with this manager, to spot an older one still running in the game.
     private static readonly string? PayloadSuiteVersion = ReadPayloadVersion();
     private string? _warnedVersion;
+    private DateTime _lastLogCheck;
+    private string? _suiteScriptError;
 
     private static string? ReadPayloadVersion()
     {
@@ -81,6 +83,8 @@ public partial class MainWindow : Window
         ScopeColumn.ItemsSource = RuleRow.Scopes;
         StopColumn.ItemsSource = RuleRow.StopTriggers;
         ItemGrid.ItemsSource = _items;
+        InitScene();
+        InitPlayer();
         RuleGrid.ItemsSource = _rules;
         _rules.CollectionChanged += (_, _) => RulesChanged();
         ShowMusicSettings();
@@ -100,6 +104,8 @@ public partial class MainWindow : Window
             PushLock();
             _parryMaster = false;
             PushParry();
+            _cheats = PBZ.Core.Player.SuiteCheats.Neutral;
+            PushCheats();
             _relay?.Dispose();
             _hotkeys?.Dispose();
         };
@@ -131,7 +137,7 @@ public partial class MainWindow : Window
         }
 
         _tailer = new TelemetryTailer(_game.RuntimeDir);
-        _relay = new ParryRelay(_game.RuntimeDir);
+        _relay = new ParryRelay(_game.RuntimeDir, Path.Combine(DataDir, "parry-relay.log"));
         ApplyRelayKeys();
         _timer.Start();
 
@@ -148,9 +154,10 @@ public partial class MainWindow : Window
             GameVersion.Text = "EXE 校验失败：" + ex.Message;
             GameVersion.Foreground = Brush("Bad");
         }
-        // Clears a lock or auto deflect left on by a previous run that did not close normally.
+        // Clears a lock, auto deflect or player tool left on by a previous run that did not close normally.
         PushLock();
         PushParry();
+        PushCheats();
         ShowLockAvailability();
     }
 
@@ -177,10 +184,27 @@ public partial class MainWindow : Window
                 s.Flask.Valid ? s.Flask.Total : null, _engine.BossActive, s.Boss?.Ratio));
         }
         ShowLive();
+        if (_game is not null && (DateTime.UtcNow - _lastLogCheck).TotalSeconds >= 5)
+        {
+            _lastLogCheck = DateTime.UtcNow;
+            var tail = PBZ.Core.Suite.SuiteLogCheck.ReadTail(Path.Combine(_game.Ue4ssDir, "UE4SS.log"));
+            var err = tail is null ? null : PBZ.Core.Suite.SuiteLogCheck.LastStartError(tail);
+            if (err != _suiteScriptError)
+            {
+                _suiteScriptError = err;
+                if (err is not null)
+                {
+                    Say("游戏内模块启动时出错，部分功能不可用：" + err.Split('\n')[^1]);
+                    Journal("suite script error: " + err.Replace('\n', ' '));
+                }
+            }
+        }
         if ((DateTime.UtcNow - _lastInventoryCheck).TotalMilliseconds >= 500)
         {
             _lastInventoryCheck = DateTime.UtcNow;
             PollInventory();
+            PollScene();
+            ShowPlayer();
         }
     }
 
@@ -206,6 +230,11 @@ public partial class MainWindow : Window
         {
             LinkState.Text = _last.IsPlaying ? "实时" : "实时（尚未进入游戏角色）";
             LinkState.Foreground = Brush("Good");
+            if (_suiteScriptError is { } se)
+            {
+                LinkState.Text += "——游戏内模块启动时出错，部分功能不可用（详情见 ue4ss/UE4SS.log）：" + se.Split('\n')[^1];
+                LinkState.Foreground = Brush("Bad");
+            }
             if (_last.SuiteVersion is { } running && PayloadSuiteVersion is { } shipped && running != shipped)
             {
                 LinkState.Text += $"——游戏内模块是旧版本 {running}（本程序带的是 {shipped}），新功能不可用：请退出游戏后在本页点“安装 / 更新”";
@@ -538,6 +567,8 @@ public partial class MainWindow : Window
         ParryMaster.IsChecked = _parryMaster;
         ParryDeflect.IsChecked = _lock.ParryDeflect;
         ParryDodge.IsChecked = _lock.ParryDodge;
+        ParryComboHold.IsChecked = _lock.ParryComboHold;
+        BuildParryTypePanel();
         ParryLead.Text = _lock.ParryLeadMs.ToString();
         ParryDeflectKey.ItemsSource = PressKey.All;
         ParryDodgeKey.ItemsSource = PressKey.All;
@@ -600,6 +631,11 @@ public partial class MainWindow : Window
         LockActions.Parry => HotkeyParry,
         LockActions.MusicStop => HotkeyMusicStop,
         LockActions.MusicToggle => HotkeyMusicToggle,
+        LockActions.SavePos => HotkeySavePos,
+        LockActions.Teleport => HotkeyTeleport,
+        LockActions.Fly => HotkeyFly,
+        LockActions.FlyUp => HotkeyFlyUp,
+        LockActions.FlyDown => HotkeyFlyDown,
         _ => HotkeySpirit,
     };
 
@@ -775,8 +811,35 @@ public partial class MainWindow : Window
     private void ParryOption_Changed(object sender, RoutedEventArgs e)
     {
         if (_loadingSettings) return;
-        SaveLock(_lock with { ParryDeflect = ParryDeflect.IsChecked == true, ParryDodge = ParryDodge.IsChecked == true });
+        SaveLock(_lock with { ParryDeflect = ParryDeflect.IsChecked == true, ParryDodge = ParryDodge.IsChecked == true, ParryComboHold = ParryComboHold.IsChecked == true });
+        ApplyRelayKeys();
         PushParry();
+    }
+
+    // One drop-down per attack type: what to do when that kind of attack comes in.
+    private void BuildParryTypePanel()
+    {
+        ParryTypePanel.Children.Clear();
+        foreach (var (id, name, defaultAction) in AttackTypes.All)
+        {
+            var current = _lock.ParryActions is { } map && map.TryGetValue(id, out var a) ? a : defaultAction;
+            var box = new ComboBox { Width = 150, Tag = id, ItemsSource = AttackTypes.Actions.Select(x => x.Name).ToList() };
+            box.SelectedIndex = Math.Max(0, AttackTypes.Actions.ToList().FindIndex(x => x.Action == current));
+            box.SelectionChanged += ParryType_Changed;
+            var cell = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 18, 6) };
+            cell.Children.Add(new TextBlock { Text = name, Width = 170, VerticalAlignment = VerticalAlignment.Center, Foreground = Brush("Muted") });
+            cell.Children.Add(box);
+            ParryTypePanel.Children.Add(cell);
+        }
+    }
+
+    private void ParryType_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (_loadingSettings || sender is not ComboBox { Tag: string id } box || box.SelectedIndex < 0) return;
+        var map = new Dictionary<string, string>(_lock.ParryActions ?? []) { [id] = AttackTypes.Actions[box.SelectedIndex].Action };
+        SaveLock(_lock with { ParryActions = map });
+        PushParry();
+        Say($"攻击类型 {AttackTypes.All.First(t => t.Id == id).Name} 的应对改为 {AttackTypes.Actions[box.SelectedIndex].Name}");
     }
 
     private void ParryKey_Changed(object sender, SelectionChangedEventArgs e)
@@ -795,6 +858,7 @@ public partial class MainWindow : Window
         if (_relay is null) return;
         _relay.DeflectKey = PressKey.Find(_lock.ParryDeflectKey, "RightMouse");
         _relay.DodgeKey = PressKey.Find(_lock.ParryDodgeKey, "LeftShift");
+        _relay.ComboHold = _lock.ParryComboHold;
     }
 
     private void ParryLead_KeyDown(object sender, KeyEventArgs e)
@@ -823,11 +887,11 @@ public partial class MainWindow : Window
     private void PushParry()
     {
         if (_game is null || _installer?.GetState() is not (PBZ.Core.Suite.SuiteState.Installed or PBZ.Core.Suite.SuiteState.Outdated)) return;
-        var wanted = new SuiteParry(_lock.ParryDeflect, _lock.ParryDodge, _lock.ParryLeadMs);
+        var wanted = new SuiteParry(_lock.ParryDeflect, _lock.ParryDodge, _lock.ParryLeadMs, _lock.ParryActions is { Count: > 0 } a ? new(a) : null);
         try
         {
             var current = SuiteConfigStore.Read(_game.RuntimeDir);
-            if (current.Modules.Parry == _parryMaster && current.Parry == wanted) return;
+            if (current.Modules.Parry == _parryMaster && wanted.SameAs(current.Parry)) return;
             var written = SuiteConfigStore.Write(_game.RuntimeDir, current with { Modules = current.Modules with { Parry = _parryMaster }, Parry = wanted });
             Journal($"parry revision={written.Revision} enabled={_parryMaster} deflect={wanted.Deflect} dodge={wanted.Dodge} lead={wanted.LeadMs}");
         }
@@ -849,7 +913,7 @@ public partial class MainWindow : Window
         }
         else
         {
-            ParryState.Text = _parryMaster ? "等待游戏应用…（需要 PBZSuite 1.0.1）" : "游戏内未启用";
+            ParryState.Text = _parryMaster ? "等待游戏应用…（需要 PBZSuite 1.0.2）" : "游戏内未启用";
             ParryState.Foreground = Brush(_parryMaster ? "Warn" : "Muted");
         }
         if (_last.Parry is { } p)
@@ -864,6 +928,7 @@ public partial class MainWindow : Window
     private void OnHotkey(string action)
     {
         if (_capturing is not null) return;
+        if (OnPlayerHotkey(action)) return;
         if (action == LockActions.MusicStop)
         {
             _audio.FadeOut();

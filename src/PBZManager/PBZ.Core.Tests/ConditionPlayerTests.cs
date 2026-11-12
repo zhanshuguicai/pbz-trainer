@@ -116,8 +116,29 @@ public sealed class ConditionPlayerTests
         var (player, output) = Defaults();
         player.Rules = [new PlayRule("start", "开战", true, RuleTrigger.FlasksEmpty, 0, "x.mp3", 1, RuleScope.EveryTime)];
         player.Handle([E(EngineEventKind.FlasksEmpty)]);
+        output.Finish(); // the first song is over
         player.Handle([E(EngineEventKind.FlasksEmpty)]);
         Assert.AreEqual(2, output.Log.Count);
+    }
+
+    [TestMethod]
+    public void PlayingSong_OnlyInterruptedByHigherPriority()
+    {
+        var (player, output) = Defaults();
+        player.Rules =
+        [
+            new PlayRule("a", "A", true, RuleTrigger.FlaskUsed, 0, "a.mp3", 2, RuleScope.EveryTime),
+            new PlayRule("same", "同级", true, RuleTrigger.UltimateUsed, 0, "b.mp3", 2, RuleScope.EveryTime),
+            new PlayRule("low", "更低", true, RuleTrigger.SpiritEmpty, 0, "c.mp3", 1, RuleScope.EveryTime),
+            new PlayRule("high", "更高", true, RuleTrigger.ShachiFull, 0, "d.mp3", 3, RuleScope.EveryTime),
+        ];
+        player.Handle([E(EngineEventKind.FlaskUsed)]);
+        player.Handle([E(EngineEventKind.FlaskUsed)]);    // same rule again: keeps playing
+        player.Handle([E(EngineEventKind.UltimateUsed)]); // same priority: does not replace
+        player.Handle([E(EngineEventKind.SpiritEmpty)]);  // lower: does not replace
+        CollectionAssert.AreEqual(new[] { "play a" }, output.Log);
+        player.Handle([E(EngineEventKind.ShachiFull)]);   // higher: interrupts
+        CollectionAssert.AreEqual(new[] { "play a", "play high" }, output.Log);
     }
 
     [TestMethod]

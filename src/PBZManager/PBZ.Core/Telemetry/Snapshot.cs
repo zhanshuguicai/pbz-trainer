@@ -31,6 +31,13 @@ public sealed record FlaskSlot(string? Id, int? Count, bool Valid);
 
 public sealed record FlaskSample(FlaskSlot? Top, FlaskSlot? Bottom, int? Total, bool Valid);
 
+// Player tools (suite 1.0.3+): where the character is, XP / level, the game speed in effect, and one-shot op results.
+public sealed record PlayerOpResult(long Seq, string? Kind, bool Ok, string? Error, double? FromX, double? FromY, double? FromZ,
+    double? Before, double? After);
+
+public sealed record PlayerSample(bool Valid, string? World, double? X, double? Y, double? Z, double? Xp, double? Level,
+    double? GameSpeed, bool Fly, IReadOnlyList<PlayerOpResult> Results);
+
 public sealed record ModulesState(bool Telemetry, bool Parry, bool Items, bool Lock = false);
 
 public sealed record Snapshot(
@@ -50,7 +57,8 @@ public sealed record Snapshot(
     ValuesSample? Values = null,
     ParrySample? Parry = null,
     BossSample? Boss = null,
-    string? SuiteVersion = null)
+    string? SuiteVersion = null,
+    PlayerSample? Player = null)
 {
     public bool IsPlaying => Lifecycle == "playing";
 
@@ -95,12 +103,29 @@ public sealed record Snapshot(
                 new ValuesSample(Pair(values, "shachi"), Pair(values, "ultimate"), Pair(values, "spirit")),
                 Obj(r, "parry") is { } pr ? new ParrySample(Int(pr, "deflects") ?? 0, Int(pr, "dodges") ?? 0, Int(pr, "hitsTaken") ?? 0, Int(pr, "clean") ?? 0) : null,
                 Obj(r, "boss") is { } bo ? new BossSample(Bool(bo, "active"), Int(bo, "count") ?? 0, Str(bo, "id"), Str(bo, "name"), Dbl(bo, "current"), Dbl(bo, "max"), Bool(bo, "valid")) : null,
-                Str(r, "suiteVersion"));
+                Str(r, "suiteVersion"),
+                Obj(r, "player") is { } pl ? ParsePlayer(pl) : null);
         }
         catch (JsonException)
         {
             return null;
         }
+    }
+
+    private static PlayerSample ParsePlayer(JsonElement pl)
+    {
+        var pos = Obj(pl, "position");
+        var results = new List<PlayerOpResult>();
+        if (pl.TryGetProperty("results", out var res) && res.ValueKind == JsonValueKind.Array)
+            foreach (var x in res.EnumerateArray())
+                if (Long(x, "seq") is { } seq)
+                {
+                    var from = Obj(x, "from");
+                    results.Add(new PlayerOpResult(seq, Str(x, "kind"), Bool(x, "ok"), Str(x, "error"),
+                        Dbl(from, "x"), Dbl(from, "y"), Dbl(from, "z"), Dbl(x, "before"), Dbl(x, "after")));
+                }
+        return new PlayerSample(Bool(pl, "valid"), Str(pl, "world"), Dbl(pos, "x"), Dbl(pos, "y"), Dbl(pos, "z"),
+            Dbl(pl, "xp"), Dbl(pl, "level"), Dbl(pl, "gameSpeed"), Bool(pl, "fly"), results);
     }
 
     private static HealthSample Pair(JsonElement? parent, string name)

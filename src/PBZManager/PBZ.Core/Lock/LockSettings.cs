@@ -69,8 +69,14 @@ public static class LockActions
     public const string Parry = "parry"; // auto deflect / dodge master switch (T5b), shares the hotkey machinery
     public const string MusicStop = "musicstop";     // fade out the song that is playing
     public const string MusicToggle = "musictoggle"; // condition player on / off
+    public const string SavePos = "savepos";   // player tools: remember where the character stands
+    public const string Teleport = "teleport"; // go back to the last remembered place
+    public const string Fly = "fly";           // fly with collision off
+    public const string FlyUp = "flyup";       // move up / down a little (works with or without flying)
+    public const string FlyDown = "flydown";
 
-    public static readonly string[] All = [Toggle, Health, Shachi, Ultimate, Spirit, Parry, MusicStop, MusicToggle];
+    public static readonly string[] All = [Toggle, Health, Shachi, Ultimate, Spirit, Parry, MusicStop, MusicToggle,
+        SavePos, Teleport, Fly, FlyUp, FlyDown];
     public static readonly string[] Items = [Health, Shachi, Ultimate, Spirit];
 
     public static string Name(string action) => action switch
@@ -83,6 +89,11 @@ public static class LockActions
         Parry => "自动弹反/闪避",
         MusicStop => "停止当前歌曲",
         MusicToggle => "条件播放器开关",
+        SavePos => "记录当前位置",
+        Teleport => "传送到记录点",
+        Fly => "飞行开关",
+        FlyUp => "上升",
+        FlyDown => "下降",
         _ => action,
     };
 }
@@ -101,6 +112,11 @@ public sealed record LockSettings(bool Health, bool Shachi, bool Ultimate, bool 
         [LockActions.Parry] = "F7",
         [LockActions.MusicStop] = "Ctrl+F6",
         [LockActions.MusicToggle] = "Ctrl+F8",
+        [LockActions.SavePos] = "Ctrl+F9",
+        [LockActions.Teleport] = "Ctrl+F10",
+        [LockActions.Fly] = "Ctrl+F11",
+        [LockActions.FlyUp] = "Ctrl+Up",
+        [LockActions.FlyDown] = "Ctrl+Down",
     };
 
     public static LockSettings Default => new(true, true, true, true, true, DefaultHotkeys());
@@ -118,6 +134,10 @@ public sealed record LockSettings(bool Health, bool Shachi, bool Ultimate, bool 
     // Real keys the manager presses (PressKey ids); defaults are the game's default bindings found 2026-11-04.
     public string ParryDeflectKey { get; init; } = "RightMouse";
     public string ParryDodgeKey { get; init; } = "LeftShift";
+    // Keep the deflect key down through a combo instead of one tap per hit (experimental, off by default).
+    public bool ParryComboHold { get; init; }
+    // Per attack type answer ("0".."5" -> deflect/hold/dodge/none); missing types use AttackTypes defaults.
+    public Dictionary<string, string>? ParryActions { get; init; }
 
     // Fixed values per item; an item missing here is locked to full.
     public Dictionary<string, double>? Values { get; init; }

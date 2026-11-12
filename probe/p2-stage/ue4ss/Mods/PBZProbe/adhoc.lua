@@ -1,54 +1,23 @@
--- Boss probe, read-only (F8 once while a boss health bar is on screen). Lines start with "BOSS". No loops.
--- Lists every PBZHUDLayout and its boss map, every WB_BossHPBar widget with its character, visibility and health,
--- and the player's lock-on / nearby characters flagged bIsBoss.
+-- One-shot unlock (F8 once, in 戏梦山庄 near the painting). Lines start with "UNLOCK".
+-- Plays the painting's own dissolve, then turns off its collision so the passage behind it can be entered.
+-- Only changes the live scene; nothing is written to the save file by this script.
 local P = PBZProbe
+local PATH = "/Game/Maps/B08_09_12_13/PBZ_Ximeng_WP.PBZ_Ximeng_WP:PersistentLevel.BP_Guahua_Huanshu_C_UAID_BCFCE7058A5725FB02_1632900079"
 
-local function str(v)
-    if v == nil then return "nil" end
-    if type(v) == "userdata" then
-        local s = P.safe(function() return v:ToString() end)
-        if s then return s end
-    end
-    return tostring(v)
-end
+local painting = P.safe(function() return StaticFindObject(PATH) end)
+if not P.isValid(painting) then P.log("UNLOCK painting not found (not in 戏梦山庄 or not loaded)") return end
 
-local function hp(actor)
-    local c = P.safe(function() return actor.AttributeSetBase.Health.CurrentValue end)
-    local m = P.safe(function() return actor.AttributeSetBase.Health_Max.CurrentValue end)
-    return string.format("%s/%s", str(c), str(m))
-end
+local ok = P.safe(function() painting["Begain Dissolve"](painting) return true end)
+P.log("UNLOCK dissolve called: %s", tostring(ok))
 
-local layouts = FindAllOf("PBZHUDLayout") or {}
-P.log("BOSS layouts: %d", #layouts)
-for i, l in ipairs(layouts) do
-    local n = 0
-    local keys = {}
-    P.safe(function()
-        l.RegisterBossHandles:ForEach(function(k)
-            n = n + 1
-            local a = P.safe(function() return k:get():Get() end)
-            table.insert(keys, P.isValid(a) and (P.fullName(a) .. " hp=" .. hp(a)) or "invalid")
-        end)
+ExecuteWithDelay(3000, function()
+    ExecuteInGameThread(function()
+        if not P.isValid(painting) then P.log("UNLOCK painting gone") return end
+        P.safe(function() painting:SetActorEnableCollision(false) end)
+        P.safe(function() painting.StaticMesh:SetCollisionEnabled(0) end)
+        P.log("UNLOCK collision off: actor=%s mesh=%s visible=%s",
+            tostring(P.safe(function() return painting:GetActorEnableCollision() end)),
+            tostring(P.safe(function() return painting.StaticMesh:GetCollisionEnabled() end)),
+            tostring(P.safe(function() return painting.StaticMesh:IsVisible() end)))
     end)
-    P.log("BOSS layout[%d] %s visible=%s map=%d %s", i, P.fullName(l), str(P.safe(function() return l:IsVisible() end)), n, table.concat(keys, " | "))
-end
-
-local bars = FindAllOf("WB_BossHPBar_C") or {}
-P.log("BOSS hp bar widgets: %d", #bars)
-for i, w in ipairs(bars) do
-    local ch = P.safe(function() return w.Character end)
-    P.log("BOSS bar[%d] %s visible=%s inViewport=%s name=%s char=%s hp=%s", i, P.fullName(w),
-        str(P.safe(function() return w:IsVisible() end)), str(P.safe(function() return w:IsInViewport() end)),
-        str(P.safe(function() return w.BossName:GetText():ToString() end)),
-        P.isValid(ch) and P.fullName(ch) or "nil", P.isValid(ch) and hp(ch) or "-")
-end
-
-local chars = FindAllOf("ProjectPBZCharacter") or {}
-local bosses = 0
-for _, c in ipairs(chars) do
-    if P.safe(function() return c.bIsBoss end) == true then
-        bosses = bosses + 1
-        P.log("BOSS flagged character %s hp=%s important=%s", P.fullName(c), hp(c), str(P.safe(function() return c.bImportantEnemy end)))
-    end
-end
-P.log("BOSS characters: %d total, %d with bIsBoss", #chars, bosses)
+end)

@@ -21,7 +21,7 @@ public enum SuiteState
 // and keep runtime output (telemetry, config) by archiving it before removal.
 public sealed class SuiteInstaller
 {
-    private static readonly Regex RuntimeFile = new(@"^runtime[\\/](telemetry-[0-9a-f]+-\d+\.jsonl|config\.json|config\.json\.tmp|results\.jsonl|inventory\.json|inventory\.json\.tmp|parry-cmd\.txt)$", RegexOptions.IgnoreCase);
+    private static readonly Regex RuntimeFile = new(@"^runtime[\\/](telemetry-[0-9a-f]+-\d+\.jsonl|config\.json|config\.json\.tmp|results\.jsonl|inventory\.json|inventory\.json\.tmp|scene\.json|scene\.json\.tmp|parry-cmd\.txt)$", RegexOptions.IgnoreCase);
     private static readonly JsonSerializerOptions Json = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, WriteIndented = true };
 
     private readonly string _payloadDir;

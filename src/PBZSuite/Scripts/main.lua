@@ -9,11 +9,14 @@
 -- T5b auto deflect / dodge: watches incoming attack frames on the player's DeflectComponent and, a moment before each
 -- hit, asks the manager (runtime/parry-cmd.txt) to press the real deflect or dodge key (IsDodge frames get a dodge).
 -- Injected Enhanced Input and direct ability activation were tried first and do nothing in this game (evidence/t5b).
+-- 1.0.3 player tools: game speed, move speed, damage dealt / taken, unlimited medicine, fly, teleport, XP / level.
+-- 1.0.3 scene repair: lists nearby mechanisms and can dissolve / hide / restore one, for saves stuck behind one-time
+-- scene mechanisms (changes are not saved by the game).
 -- Writing is refused unless the manager has set compatible=true for this game build.
 
 local UEHelpers = require("UEHelpers")
 
-local SUITE_VERSION = "1.0.1"
+local SUITE_VERSION = "1.0.3"
 local SCHEMA_VERSION = 1
 local GAME_BUILD = "26367565"
 local SAMPLE_MS = 200
@@ -144,8 +147,9 @@ end
 local LOCK_OFF = { enabled = false, health = false, shachi = false, ultimate = false, spirit = false,
     value = { health = -1, shachi = -1, ultimate = -1, spirit = -1 } }
 local config = { revision = 0, compatible = false, modules = { parry = false, items = false }, lock = LOCK_OFF,
-    inventoryRequest = 0, itemOps = {},
-    parry = { deflect = true, dodge = true, leadMs = 120 } }
+    inventoryRequest = 0, itemOps = {}, sceneRequest = 0, sceneOps = {},
+    cheats = { gameSpeed = 1, move = 1, damage = 1, taken = 1, medicine = false, fly = false }, playerOps = {},
+    parry = { deflect = true, dodge = true, leadMs = 120, actions = {} } }
 local lastConfigText = nil
 
 local function pollConfig()
@@ -168,12 +172,22 @@ local function pollConfig()
         lock = LOCK_OFF,
         inventoryRequest = type(parsed.inventoryRequest) == "number" and parsed.inventoryRequest or 0,
         itemOps = {},
-        parry = { deflect = true, dodge = true, leadMs = 120 },
+        sceneRequest = type(parsed.sceneRequest) == "number" and parsed.sceneRequest or 0,
+        sceneOps = {},
+        cheats = { gameSpeed = 1, move = 1, damage = 1, taken = 1, medicine = false, fly = false },
+        playerOps = {},
+        parry = { deflect = true, dodge = true, leadMs = 120, actions = {} },
     }
     if type(parsed.parry) == "table" then
         local pr = parsed.parry
+        local actions = {}
+        if type(pr.actions) == "table" then
+            for k, v in pairs(pr.actions) do
+                if v == "deflect" or v == "hold" or v == "dodge" or v == "none" then actions[tostring(k)] = v end
+            end
+        end
         config.parry = { deflect = pr.deflect ~= false, dodge = pr.dodge ~= false,
-            leadMs = type(pr.leadMs) == "number" and math.max(0, math.min(300, pr.leadMs)) or 120 }
+            leadMs = type(pr.leadMs) == "number" and math.max(0, math.min(300, pr.leadMs)) or 120, actions = actions }
     end
     -- Item edits: { seq, kind = "item" | "money", id, target }. Applied once each, in seq order.
     if type(parsed.itemOps) == "table" then
@@ -183,6 +197,32 @@ local function pollConfig()
             end
         end
         table.sort(config.itemOps, function(a, b) return a.seq < b.seq end)
+    end
+    -- Player tools: neutral values mean off. Ranges are clamped here as well as in the manager.
+    if type(parsed.cheats) == "table" then
+        local c = parsed.cheats
+        local function clamp(v, lo, hi, d) if type(v) ~= "number" then return d end return math.max(lo, math.min(hi, v)) end
+        config.cheats = { gameSpeed = clamp(c.gameSpeed, 0.1, 5, 1), move = clamp(c.moveSpeed, 0.5, 5, 1),
+            damage = clamp(c.damage, 0.1, 100, 1), taken = clamp(c.taken, 0, 5, 1),
+            medicine = c.medicine == true, fly = c.fly == true }
+    end
+    -- Player ops: { seq, kind = "teleport" | "nudge" | "xp" | "level", x, y, z, value }. Applied once each, in seq order.
+    if type(parsed.playerOps) == "table" then
+        for _, op in ipairs(parsed.playerOps) do
+            if type(op) == "table" and type(op.seq) == "number" and type(op.kind) == "string" then
+                table.insert(config.playerOps, { seq = op.seq, kind = op.kind, x = op.x, y = op.y, z = op.z, value = op.value })
+            end
+        end
+        table.sort(config.playerOps, function(a, b) return a.seq < b.seq end)
+    end
+    -- Scene repair: { seq, kind, path }. Applied once each, in seq order.
+    if type(parsed.sceneOps) == "table" then
+        for _, op in ipairs(parsed.sceneOps) do
+            if type(op) == "table" and type(op.seq) == "number" and type(op.path) == "string" and type(op.kind) == "string" then
+                table.insert(config.sceneOps, { seq = op.seq, kind = op.kind, path = op.path })
+            end
+        end
+        table.sort(config.sceneOps, function(a, b) return a.seq < b.seq end)
     end
     if type(parsed.lock) == "table" then
         local l = parsed.lock
@@ -354,6 +394,9 @@ local function readBoss()
         valid = type(cur) == "number" and type(max) == "number" and max > 0 }
 end
 
+-- Filled by playerTick (player tools section) and sent with every telemetry record.
+local playerState = { valid = false, results = {} }
+
 local function sample()
     local record = {
         schemaVersion = SCHEMA_VERSION,
@@ -397,6 +440,7 @@ local function sample()
     }
     record.combat = readCombat(pawn)
     record.flask = readFlask()
+    record.player = playerState
     return record
 end
 
@@ -619,13 +663,195 @@ local function itemsTick()
     end
 end
 
+-- ---------- scene repair (1.0.3) ----------
+-- For saves stuck behind one-time scene mechanisms (2026-11-11: the 冷图密道 illusion painting in 戏梦山庄 had closed
+-- again and could not be triggered a second time). On request lists nearby mechanisms to runtime/scene.json; ops
+-- { seq, kind = "dissolve" | "remove" | "restore", path } act on one actor by its object path.
+-- Changes live only in the running scene (the game does not save them); reloading the area restores everything.
+local SCENE_FILE = RUNTIME_DIR .. "/scene.json"
+local SCENE_RADIUS = 2000 -- cm
+local SCENE_MAX = 200
+local SCENE_DISSOLVE_TICKS = 15 -- collision goes off this many 200 ms ticks after the dissolve starts
+local SCENE_KEYWORDS = { "Door", "Gate", "Block", "Wall", "Switch", "Guahua", "PingZhang", "Barrier", "Interact", "Chest", "Mechanism", "Jiguan" }
+local lastSceneRequest, lastSceneSeq, sceneSeq, sceneTicks = nil, nil, 0, 0
+local sceneResults, scenePending = {}, {}
+local sceneOriginal = {} -- path -> { hidden, collision, mesh } before the first change this session
+local sceneDissolved = {} -- paths whose dissolve effect has played (it cannot be played backwards)
+
+local function actorPath(a)
+    local full = safe(function() return a:GetFullName() end)
+    return full and string.match(full, "^%S+%s+(.+)$") or nil
+end
+
+local function actorLoc(a)
+    local l = safe(function() return a:K2_GetActorLocation() end)
+    if not l then return nil end
+    return { x = l.X, y = l.Y, z = l.Z }
+end
+
+local function sceneEntry(a, cls, d)
+    local flow = safe(function() return a.BP_PBZFlowComponent end)
+    local root = isValid(flow) and safe(function() return flow.RootFlow end) or nil
+    local rootName = isValid(root) and safe(function() return root:GetFName():ToString() end) or nil
+    return {
+        path = actorPath(a) or NULL, class = cls, distance = math.floor(d),
+        desc = text(safe(function() return a.ActorDesc end)) or NULL,
+        flow = rootName or NULL,
+        hidden = safe(function() return a.bHidden end) == true,
+        collision = safe(function() return a:GetActorEnableCollision() end) ~= false,
+        saved = isValid(safe(function() return a.PBZActorSave end)),
+    }
+end
+
+local function sceneRelevant(a, cls)
+    if isValid(safe(function() return a.PBZActorSave end)) or isValid(safe(function() return a.BP_PBZFlowComponent end)) then return true end
+    for _, k in ipairs(SCENE_KEYWORDS) do if string.find(cls, k, 1, true) then return true end end
+    return false
+end
+
+local function writeScene(reason)
+    local pawn = playerPawn()
+    local me = pawn and actorLoc(pawn)
+    local actors = {}
+    if me then
+        -- One FindAllOf per request (never in a loop: that crashed UE4SS during P2).
+        for _, a in ipairs(FindAllOf("Actor") or {}) do
+            local l = a ~= pawn and actorLoc(a) or nil
+            if l then
+                local d = math.sqrt((l.x - me.x) ^ 2 + (l.y - me.y) ^ 2 + (l.z - me.z) ^ 2)
+                if d <= SCENE_RADIUS then
+                    local cls = safe(function() return a:GetClass():GetFName():ToString() end) or "?"
+                    if sceneRelevant(a, cls) then table.insert(actors, sceneEntry(a, cls, d)) end
+                end
+            end
+        end
+        table.sort(actors, function(x, y) return x.distance < y.distance end)
+        while #actors > SCENE_MAX do table.remove(actors) end
+    end
+    local world = safe(function() return UEHelpers.GetWorld():GetFName():ToString() end)
+    sceneSeq = sceneSeq + 1
+    local record = { seq = sceneSeq, sessionId = sessionId, reason = reason, wallTime = os.time(), valid = me ~= nil,
+        world = world or NULL, actors = actors, results = sceneResults }
+    local tmp = SCENE_FILE .. ".tmp"
+    local f = io.open(tmp, "wb")
+    if not f then log("cannot write %s", tmp) return end
+    f:write(encode(record))
+    f:close()
+    os.remove(SCENE_FILE)
+    local ok, err = os.rename(tmp, SCENE_FILE)
+    if not ok then log("scene rename error: %s", tostring(err)) end
+end
+
+local function passThrough(a)
+    safe(function() a:SetActorEnableCollision(false) end)
+    safe(function() a.StaticMesh:SetCollisionEnabled(0) end)
+end
+
+local function applySceneOp(op)
+    local result = { seq = op.seq, kind = op.kind, path = op.path, ok = false }
+    local a = type(op.path) == "string" and safe(function() return StaticFindObject(op.path) end) or nil
+    if not isValid(a) then result.error = "not found" return result end
+    if op.kind ~= "restore" and not sceneOriginal[op.path] then
+        sceneOriginal[op.path] = { hidden = safe(function() return a.bHidden end) == true,
+            collision = safe(function() return a:GetActorEnableCollision() end) ~= false,
+            mesh = safe(function() return a.StaticMesh:GetCollisionEnabled() end) }
+    end
+    if op.kind == "dissolve" then
+        -- The illusion painting's own effect; anything without it is simply hidden.
+        local ok = pcall(function() a["Begain Dissolve"](a) end)
+        result.dissolved = ok
+        if ok then
+            sceneDissolved[op.path] = true
+            table.insert(scenePending, { path = op.path, actor = a, due = sceneTicks + SCENE_DISSOLVE_TICKS })
+        else
+            safe(function() a:SetActorHiddenInGame(true) end)
+            passThrough(a)
+        end
+    elseif op.kind == "remove" then
+        safe(function() a:SetActorHiddenInGame(true) end)
+        passThrough(a)
+    elseif op.kind == "restore" then
+        for i = #scenePending, 1, -1 do
+            if scenePending[i].path == op.path then table.remove(scenePending, i) end
+        end
+        if sceneDissolved[op.path] then
+            -- The dissolve has faded the material; making it solid again would leave an invisible wall.
+            result.error = "dissolved"
+            return result
+        end
+        local o = sceneOriginal[op.path]
+        if o then
+            safe(function() a:SetActorHiddenInGame(o.hidden) end)
+            safe(function() a:SetActorEnableCollision(o.collision) end)
+            if type(o.mesh) == "number" then safe(function() a.StaticMesh:SetCollisionEnabled(o.mesh) end) end
+            sceneOriginal[op.path] = nil
+        end
+    else
+        result.error = "unknown kind"
+        return result
+    end
+    result.hidden = safe(function() return a.bHidden end) == true
+    result.collision = safe(function() return a:GetActorEnableCollision() end) ~= false
+    result.ok = true
+    return result
+end
+
+local function sceneTick()
+    sceneTicks = sceneTicks + 1
+    -- The first config seen only sets the baselines, as for items.
+    if lastSceneRequest == nil then
+        lastSceneRequest = config.sceneRequest
+        local top = 0
+        for _, op in ipairs(config.sceneOps) do top = math.max(top, op.seq) end
+        lastSceneSeq = top
+        return
+    end
+    local changed = false
+    for i = #scenePending, 1, -1 do
+        local p = scenePending[i]
+        if sceneTicks >= p.due then
+            table.remove(scenePending, i)
+            if isValid(p.actor) then passThrough(p.actor) end
+            log("scene dissolve finished, collision off")
+            changed = true
+        end
+    end
+    for _, op in ipairs(config.sceneOps) do
+        if op.seq > lastSceneSeq then
+            lastSceneSeq = op.seq
+            local result
+            if not config.compatible then
+                result = { seq = op.seq, kind = op.kind, path = op.path, ok = false, error = "incompatible game build" }
+            else
+                local ok, r = pcall(applySceneOp, op)
+                result = ok and r or { seq = op.seq, kind = op.kind, path = op.path, ok = false, error = tostring(r) }
+            end
+            log("scene op %d %s %s: %s %s", op.seq, tostring(op.kind), tostring(op.path), result.ok and "ok" or "failed",
+                tostring(result.error or ""))
+            table.insert(sceneResults, result)
+            while #sceneResults > 30 do table.remove(sceneResults, 1) end
+            changed = true
+        end
+    end
+    if changed then
+        writeScene("edit")
+    elseif config.sceneRequest ~= lastSceneRequest then
+        lastSceneRequest = config.sceneRequest
+        writeScene("request")
+    end
+end
+
 -- ---------- auto deflect / dodge (T5b) ----------
 -- Probe 2026-11-04 (evidence/t5b): frames appear about 0.28 s before the hit (IsDodge ones about 0.48 s); a frame
 -- whose HitGameTime is not a real time (projectiles) is answered as soon as it appears.
-local PARRY_TICK_MS = 16
-local MIN_PRESS_GAP = 0.08 -- seconds between two presses
+-- 1.0.2: each frame is scheduled the moment it appears: the manager gets "press in X ms, hit in Y ms" (real time,
+-- corrected for slow motion) and times the key itself, so frames of a combo no longer delay each other.
+local PARRY_TICK_MS = 16 -- the parry loop runs every frame-ish; attack frames live only about 0.3 s
 local statics
 local parryCmdSeq = 0
+local parryCmdLines = {} -- last few commands; the file always holds all of them so none is lost between reads
+local PARRY_CMD_KEEP = 12
+local HIT_MIN_RATIO = 0.01 -- a health drop below 1 % of max (chip damage, bleed ticks) is not a failed deflect
 
 local function parryWanted() return config.compatible and config.modules.parry end
 
@@ -634,15 +860,42 @@ local function gameTime(world)
     return safe(function() return statics:GetTimeSeconds(world) end)
 end
 
--- One line "PBZPARRY <session> <seq> <deflect|dodge> end"; the manager presses the key once per new seq.
--- The trailing "end" lets the manager ignore a half-written file.
-local function press(kind)
+-- Real seconds per game second: slow motion (perfect dodge, executions) lowers global time dilation.
+local function realPerGame(world)
+    local d = safe(function() return statics:GetGlobalTimeDilation(world) end)
+    if type(d) ~= "number" or d < 0.05 then return 1 end
+    return 1 / d
+end
+
+-- Lines "PBZPARRY <session> <seq> <deflect|hold|dodge> <pressInMs> <hitInMs> end"; the manager handles each new seq once.
+-- The trailing "end" lets the manager ignore a half-written line.
+local function sendPress(kind, pressInMs, hitInMs)
     return pcall(function()
         parryCmdSeq = parryCmdSeq + 1
+        table.insert(parryCmdLines, string.format("PBZPARRY %s %d %s %d %d end", sessionId, parryCmdSeq, kind,
+            math.floor(pressInMs + 0.5), math.floor(hitInMs + 0.5)))
+        while #parryCmdLines > PARRY_CMD_KEEP do table.remove(parryCmdLines, 1) end
         local f = assert(io.open(PARRY_CMD_FILE, "wb"))
-        f:write(string.format("PBZPARRY %s %d %s end\n", sessionId, parryCmdSeq, kind))
+        f:write(table.concat(parryCmdLines, "\n") .. "\n")
         f:close()
     end)
+end
+
+local function tagName(tag) return safe(function() return tag.TagName:ToString() end) or "?" end
+
+-- EDeflectBulletType, read from the attacking action: 0 CantDeflect, 1 Normal, 2 BlueEye, 3 RedEye, 4 PowerAttack,
+-- 5 HoldDeflect. The manager can set the answer per type; these are the defaults.
+local TYPE_NAMES = { [0] = "CantDeflect", [1] = "Normal", [2] = "BlueEye", [3] = "RedEye", [4] = "PowerAttack", [5] = "HoldDeflect" }
+local DEFAULT_ACTIONS = { ["0"] = "dodge", ["1"] = "deflect", ["2"] = "deflect", ["3"] = "dodge", ["4"] = "deflect", ["5"] = "hold" }
+
+-- "deflect" (tap), "hold" (keep the deflect key down until the hit), "dodge" or "none".
+local function actionFor(btype, isDodge)
+    local key = btype and tostring(btype) or nil
+    local a = key and (config.parry.actions[key] or DEFAULT_ACTIONS[key]) or (isDodge and "dodge" or "deflect")
+    if isDodge and a ~= "none" then a = "dodge" end -- the game itself marks this frame as dodge-only
+    if (a == "deflect" or a == "hold") and not config.parry.deflect then a = "none" end
+    if a == "dodge" and not config.parry.dodge then a = "none" end
+    return a
 end
 
 local function parryTick()
@@ -666,58 +919,288 @@ local function parryTick()
     local now = gameTime(world)
     if type(now) ~= "number" then return end
     local lead = config.parry.leadMs / 1000
+    local scale = realPerGame(world)
 
-    -- Outcome of earlier presses: health lower shortly after the expected hit means the hit landed.
+    -- Outcome of earlier presses: a real health drop shortly after the expected hit means the hit landed.
     local hp = safe(function() return pawn.AttributeSetBase.Health.CurrentValue end)
+    local maxHp = safe(function() return pawn.AttributeSetBase.Health_Max.CurrentValue end)
+    local minDrop = type(maxHp) == "number" and math.max(5, maxHp * HIT_MIN_RATIO) or 5
     for i = #parry.pending, 1, -1 do
         local p = parry.pending[i]
         if now >= p.checkAt then
-            if type(hp) == "number" and type(p.hp) == "number" and hp < p.hp - 0.5 then
+            local drop = (type(hp) == "number" and type(p.hp) == "number") and (p.hp - hp) or 0
+            local landed = drop >= minDrop
+            local outcome
+            if p.healthLocked then
+                outcome = "unknown (health lock on)"
+            elseif landed then
                 parry.hitsTaken = parry.hitsTaken + 1
-                log("parry %s h=%d: hit taken (%.0f -> %.0f)", p.kind, p.handle, p.hp, hp)
+                outcome = "HIT"
             else
                 parry.cleanHits = parry.cleanHits + 1
+                outcome = "ok"
             end
+            log("parry #%d %s h=%d %s seen=%dms press=%dms before hit: %s (-%.0f)", p.seq or 0, p.kind, p.handle, p.strength,
+                p.seenMs, p.leadMs, outcome, math.max(0, drop))
             table.remove(parry.pending, i)
         end
     end
 
     local live = {}
-    local due = {}
+    local new = {}
     safe(function()
         parry.comp.ReceiveFrames:ForEach(function(key, value)
             local h = key:get()
             live[h] = true
             if parry.handled[h] then return end
+            parry.handled[h] = true
             local f = value:get()
             local hit = safe(function() return f.HitGameTime end)
-            local isDodge = safe(function() return f.IsDodge end) == true
             local unknownTime = type(hit) ~= "number" or hit < now - 5 or hit > now + 5
-            if unknownTime or hit - now <= lead then
-                table.insert(due, { handle = h, dodge = isDodge, hit = unknownTime and now or hit })
-            end
+            local src = safe(function() return f.SourceAction:Get() end)
+            local btype = isValid(src) and safe(function() return src.DeflectBulletType end) or nil
+            table.insert(new, { handle = h, dodge = safe(function() return f.IsDodge end) == true,
+                hit = unknownTime and now or hit, unknown = unknownTime, btype = type(btype) == "number" and btype or nil,
+                strength = (tagName(safe(function() return f.DeflectStrength end)):gsub("^Deflect%.Strength%.", "")) })
         end)
     end)
     for h in pairs(parry.handled) do if not live[h] then parry.handled[h] = nil end end
 
-    table.sort(due, function(a, b) return a.hit < b.hit end)
-    for _, d in ipairs(due) do
-        local wantDodge = d.dodge
-        if (wantDodge and not config.parry.dodge) or (not wantDodge and not config.parry.deflect) then
-            parry.handled[d.handle] = true
-        elseif now - parry.lastPress >= MIN_PRESS_GAP then
-            local ok, err = press(wantDodge and "dodge" or "deflect")
-            parry.handled[d.handle] = true
-            parry.lastPress = now
+    table.sort(new, function(a, b) return a.hit < b.hit end)
+    for _, d in ipairs(new) do
+        local kind = actionFor(d.btype, d.dodge)
+        local typeName = d.btype and (TYPE_NAMES[d.btype] or tostring(d.btype)) or "?"
+        local toHit = math.max(0, d.hit - now)              -- game seconds until the hit
+        if kind == "none" then
+            log("parry h=%d type=%s %s dodgeFlag=%s in=%dms: not handled (set to none)", d.handle, typeName, d.strength,
+                tostring(d.dodge), math.floor(toHit * scale * 1000))
+        else
+            local pressIn = math.max(0, toHit - lead) * scale   -- real seconds until the key goes down
+            local hitIn = toHit * scale
+            local ok, err = sendPress(kind, pressIn * 1000, hitIn * 1000)
             if ok then
-                if wantDodge then parry.dodges = parry.dodges + 1 else parry.deflects = parry.deflects + 1 end
-                table.insert(parry.pending, { handle = d.handle, kind = wantDodge and "dodge" or "deflect", hp = hp,
-                    checkAt = math.max(d.hit, now) + 0.25 })
+                if kind == "dodge" then parry.dodges = parry.dodges + 1 else parry.deflects = parry.deflects + 1 end
+                table.insert(parry.pending, { handle = d.handle, seq = parryCmdSeq, kind = kind, hp = hp,
+                    healthLocked = config.compatible and config.lock.enabled and config.lock.health,
+                    strength = (d.unknown and "projectile/" or "") .. typeName .. "/" .. d.strength,
+                    seenMs = math.floor(hitIn * 1000), leadMs = math.floor((hitIn - pressIn) * 1000), checkAt = d.hit + 0.25 })
             else
                 log("parry press error: %s", tostring(err))
             end
         end
     end
+end
+
+-- ---------- player tools (1.0.3) ----------
+-- Continuous settings from config.cheats (all neutral by default): game speed, move speed, damage dealt / taken
+-- multipliers, unlimited medicine, fly (no collision). One-shot ops from config.playerOps: teleport to x/y/z, nudge
+-- (up / down / forward), set XP or Level. Position and op results go out with the telemetry (record.player).
+-- Attribute names from the P2 survey (evidence/p2): Attack, ShachiAttack, JogSpeed, SprintSpeed, WalkSpeed,
+-- CrouchSpeed, TakenReductionMultiplier_*, XP, Level. Medicine: MedicineInfos[id].CurrentTime / MaxTime + MedicineExtraUsage.
+local SCALE_GROUPS = {
+    damage = { "Attack", "ShachiAttack" },
+    move = { "JogSpeed", "SprintSpeed", "WalkSpeed", "CrouchSpeed" },
+    taken = { "TakenReductionMultiplier_Physical", "TakenReductionMultiplier_PhysicalBlunt", "TakenReductionMultiplier_PhysicalSharp",
+        "TakenReductionMultiplier_Elemental", "TakenReductionMultiplier_Fire", "TakenReductionMultiplier_Ice",
+        "TakenReductionMultiplier_Lightning", "TakenReductionMultiplier_Aqua", "TakenReductionMultiplier_Blood",
+        "TakenReductionMultiplier_Chaos", "TakenReductionMultiplier_Toxin" },
+}
+local MOVE_WALKING, MOVE_FALLING, MOVE_FLYING = 1, 3, 5
+local scaled = {} -- attr -> { orig = unscaled base, written = base we wrote }
+local playerPawnAddr = nil
+local flyOn, appliedSpeed = false, 1
+local playerOpSeq = nil
+local playerErrors = 0
+
+local function cheatsWanted() return config.compatible end
+
+local function perr(fmt, ...)
+    if playerErrors < 30 then
+        playerErrors = playerErrors + 1
+        log(fmt, ...)
+    end
+end
+
+-- Keeps attr at (its unscaled base) * mult. A base the game changed itself (level up, gear) becomes the new unscaled one.
+local function scaleAttr(set, attr, mult)
+    local a = safe(function() return set[attr] end)
+    if a == nil then return end
+    local base = safe(function() return a.BaseValue end)
+    local cur = safe(function() return a.CurrentValue end)
+    if type(base) ~= "number" or type(cur) ~= "number" then return end
+    local st = scaled[attr]
+    local orig = (st and math.abs(base - st.written) < 0.001) and st.orig or base
+    local target = orig * mult
+    if math.abs(mult - 1) < 0.0001 then
+        if st and math.abs(base - st.written) < 0.001 then target = st.orig else scaled[attr] = nil return end
+    end
+    if math.abs(base - target) > 0.001 then
+        local ok, err = pcall(function()
+            a.BaseValue = target
+            -- CurrentValue = base with the game's own modifiers; keep their effect proportional.
+            a.CurrentValue = base ~= 0 and cur * target / base or target
+        end)
+        if not ok then perr("scale %s error: %s", attr, tostring(err)) return end
+    end
+    if math.abs(mult - 1) < 0.0001 then scaled[attr] = nil else scaled[attr] = { orig = orig, written = target } end
+end
+
+local function refillMedicine(bp)
+    local extra = safe(function() return bp.MedicineExtraUsage end) or 0
+    for _, slot in ipairs({ "TopMedicineID", "BottomMedicineID" }) do
+        local id = safe(function() return bp[slot]:ToString() end)
+        if id and id ~= "None" and id ~= "" then
+            safe(function()
+                bp.MedicineInfos:ForEach(function(key, value)
+                    if key:get():ToString() == id then
+                        local info = value:get()
+                        local max = (info.MaxTime or 0) + extra
+                        if max > 0 and info.CurrentTime < max then
+                            info.CurrentTime = max
+                            info.DisplayTime = max
+                        end
+                        return true
+                    end
+                end)
+            end)
+        end
+    end
+end
+
+local function setFly(pawn, on)
+    local move = safe(function() return pawn.CharacterMovement end)
+    if not isValid(move) then return end
+    if on then
+        if safe(function() return move.MovementMode end) ~= MOVE_FLYING then
+            safe(function() move:SetMovementMode(MOVE_FLYING, 0) end)
+        end
+        if safe(function() return pawn:GetActorEnableCollision() end) ~= false then
+            safe(function() pawn:SetActorEnableCollision(false) end)
+        end
+    else
+        safe(function() pawn:SetActorEnableCollision(true) end)
+        safe(function() move:SetMovementMode(MOVE_FALLING, 0) end) -- lands and returns to walking by itself
+    end
+end
+
+local function applyGameSpeed(world, wanted)
+    if not isValid(statics) then statics = UEHelpers.GetGameplayStatics() end
+    local current = safe(function() return statics:GetGlobalTimeDilation(world) end)
+    if type(current) ~= "number" then return end
+    if wanted ~= appliedSpeed then
+        safe(function() statics:SetGlobalTimeDilation(world, wanted) end)
+        appliedSpeed = wanted
+    elseif wanted ~= 1 and math.abs(current - 1) < 0.0001 then
+        -- The game resets dilation to 1 after its own slow motion; put ours back. Its slow motion itself is left alone.
+        safe(function() statics:SetGlobalTimeDilation(world, wanted) end)
+    end
+end
+
+local function vec(x, y, z) return { X = x, Y = y, Z = z } end
+
+local function applyPlayerOp(pawn, op)
+    local result = { seq = op.seq, kind = op.kind, ok = false }
+    if op.kind == "teleport" or op.kind == "nudge" then
+        local l = safe(function() return pawn:K2_GetActorLocation() end)
+        if not l then result.error = "no position" return result end
+        local to
+        if op.kind == "teleport" then
+            if type(op.x) ~= "number" or type(op.y) ~= "number" or type(op.z) ~= "number" then result.error = "bad position" return result end
+            to = vec(op.x, op.y, op.z)
+        else
+            local f = safe(function() return pawn:GetActorForwardVector() end)
+            local fwd, up = op.x or 0, op.z or 0
+            to = vec(l.X + (f and f.X or 0) * fwd, l.Y + (f and f.Y or 0) * fwd, l.Z + up)
+        end
+        result.from = { x = l.X, y = l.Y, z = l.Z }
+        local rot = safe(function() return pawn:K2_GetActorRotation() end) or { Pitch = 0, Yaw = 0, Roll = 0 }
+        local ok, err = pcall(function() return pawn:K2_TeleportTo(to, rot) end)
+        local after = safe(function() return pawn:K2_GetActorLocation() end)
+        result.ok = ok and after ~= nil and math.abs(after.X - to.X) + math.abs(after.Y - to.Y) + math.abs(after.Z - to.Z) < 200
+        if not ok then result.error = tostring(err) elseif not result.ok then result.error = "blocked" end
+        return result
+    elseif op.kind == "xp" or op.kind == "level" then
+        local set = safe(function() return pawn.AttributeSetBase end)
+        local attr = op.kind == "xp" and "XP" or "Level"
+        if not isValid(set) or type(op.value) ~= "number" then result.error = "no attributes" return result end
+        local v = math.max(op.kind == "level" and 1 or 0, math.floor(op.value))
+        result.before = select(2, readValue(set, attr))
+        local ok, err = pcall(function()
+            set[attr].BaseValue = v
+            set[attr].CurrentValue = v
+        end)
+        result.after = select(2, readValue(set, attr))
+        result.ok = ok and result.after == v
+        if not ok then result.error = tostring(err) end
+        return result
+    end
+    result.error = "unknown kind"
+    return result
+end
+
+-- Runs every 200 ms after the config poll. Builds playerState for the telemetry record.
+local function playerTick()
+    local pawn = playerPawn()
+    if not pawn then playerState.valid = false return end
+    local addr = safe(function() return pawn:GetAddress() end)
+    if addr ~= playerPawnAddr then
+        -- New character (load, death): its attributes start unscaled, its movement normal.
+        playerPawnAddr, scaled, flyOn = addr, {}, false
+    end
+    local world = safe(function() return pawn:GetWorld() end)
+    local c = config.cheats
+    local on = cheatsWanted()
+    applyGameSpeed(world, on and c.gameSpeed or 1)
+    local set = safe(function() return pawn.AttributeSetBase end)
+    if isValid(set) then
+        for group, attrs in pairs(SCALE_GROUPS) do
+            local mult = on and c[group] or 1
+            for _, attr in ipairs(attrs) do scaleAttr(set, attr, mult) end
+        end
+    end
+    if on and c.medicine then
+        if not isValid(backpack) then backpack = safe(function() return FindFirstOf("PBZBackPackSubsystem") end) end
+        if isValid(backpack) then refillMedicine(backpack) end
+    end
+    local wantFly = on and c.fly
+    if wantFly then setFly(pawn, true) elseif flyOn then setFly(pawn, false) end
+    flyOn = wantFly
+
+    -- One-shot ops; the first config seen only sets the baseline.
+    if playerOpSeq == nil then
+        playerOpSeq = 0
+        for _, op in ipairs(config.playerOps) do playerOpSeq = math.max(playerOpSeq, op.seq) end
+    else
+        for _, op in ipairs(config.playerOps) do
+            if op.seq > playerOpSeq then
+                playerOpSeq = op.seq
+                local result
+                if not on then
+                    result = { seq = op.seq, kind = op.kind, ok = false, error = "incompatible game build" }
+                else
+                    local ok, r = pcall(applyPlayerOp, pawn, op)
+                    result = ok and r or { seq = op.seq, kind = op.kind, ok = false, error = tostring(r) }
+                end
+                log("player op %d %s: %s %s", op.seq, tostring(op.kind), result.ok and "ok" or "failed", tostring(result.error or ""))
+                table.insert(playerState.results, result)
+                while #playerState.results > 10 do table.remove(playerState.results, 1) end
+            end
+        end
+    end
+
+    local l = safe(function() return pawn:K2_GetActorLocation() end)
+    local xp, level
+    if isValid(set) then
+        xp = select(2, readValue(set, "XP"))
+        level = select(2, readValue(set, "Level"))
+    end
+    playerState.valid = l ~= nil
+    playerState.world = safe(function() return world:GetFName():ToString() end) or NULL
+    playerState.position = l and { x = l.X, y = l.Y, z = l.Z } or NULL
+    playerState.xp = xp or NULL
+    playerState.level = level or NULL
+    playerState.gameSpeed = safe(function() return statics:GetGlobalTimeDilation(world) end) or NULL
+    playerState.fly = flyOn == true
 end
 
 -- ---------- loop ----------
@@ -738,6 +1221,10 @@ LoopInGameThreadWithDelay(SAMPLE_MS, function()
     if config.revision > 0 then
         local iok, ierr = pcall(itemsTick)
         if not iok then log("items error: %s", tostring(ierr)) end
+        local sok, serr = pcall(sceneTick)
+        if not sok then log("scene error: %s", tostring(serr)) end
+        local pok, perr2 = pcall(playerTick)
+        if not pok then log("player error: %s", tostring(perr2)) end
     end
     local ok, record = pcall(sample)
     if not ok then

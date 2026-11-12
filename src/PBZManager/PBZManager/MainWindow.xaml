@@ -22,7 +22,7 @@
                     </StackPanel>
                     <Rectangle Height="3" Width="300" HorizontalAlignment="Left" Fill="{StaticResource BladeStroke}" Margin="0,2,0,0" />
                 </StackPanel>
-                <TextBlock Grid.Column="2" x:Name="VersionText" Text="v1.0.1 · 单机本地修改器" Foreground="{StaticResource Muted}" VerticalAlignment="Bottom" FontFamily="{StaticResource Kai}" FontSize="14" />
+                <TextBlock Grid.Column="2" x:Name="VersionText" Text="v1.0.3 · 单机本地修改器" Foreground="{StaticResource Muted}" VerticalAlignment="Bottom" FontFamily="{StaticResource Kai}" FontSize="14" />
             </Grid>
         </Border>
 
@@ -122,7 +122,7 @@
                             <Button Content="导入规则…" Click="ImportRules_Click" />
                         </StackPanel>
                         <TextBlock Foreground="{StaticResource Muted}" Margin="0,8,0,0" TextWrapping="Wrap"
-                                   Text="同时触发时只放优先级最高的一首；正在放的歌只会被优先级不低于它的规则打断。&quot;每场一次&quot;按战斗计；不在战斗中的触发每次都会放。&#x0a;参数：血量类为百分比，围攻为敌人数，战斗持续为秒数；鼠标停在参数格上可看说明。附加条件要全部满足才播放（例如药喝空只在战斗中放）。&#x0a;淡出条件：歌曲循环播放，直到发生该事件才淡出；选&quot;不淡出&quot;则只放一遍（可在&quot;播放设置&quot;里改）。&#x0a;播放设置：每条规则可放多首歌（随机或轮流）、单独音量、从第几秒开始、淡入淡出时长、冷却时间。Boss 类事件看屏幕上的 Boss 血条。杀气、绝技、影魂类事件需要 PBZSuite 1.0.1。" />
+                                   Text="同时触发时只放优先级最高的一首；正在放的歌只会被优先级更高的规则打断，同级或更低的不会挤掉它。&quot;每场一次&quot;按战斗计；不在战斗中的触发每次都会放。&#x0a;参数：血量类为百分比，围攻为敌人数，战斗持续为秒数；鼠标停在参数格上可看说明。附加条件要全部满足才播放（例如药喝空只在战斗中放）。&#x0a;淡出条件：歌曲循环播放，直到发生该事件才淡出；选&quot;不淡出&quot;则只放一遍（可在&quot;播放设置&quot;里改）。&#x0a;播放设置：每条规则可放多首歌（随机或轮流）、单独音量、从第几秒开始、淡入淡出时长、冷却时间。Boss 类事件看屏幕上的 Boss 血条。杀气、绝技、影魂类事件需要 PBZSuite 1.0.2。" />
                     </StackPanel>
 
                     <DataGrid x:Name="RuleGrid" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
@@ -298,7 +298,7 @@
                             <Button Content="清空输入" Click="ClearItemInputs_Click" />
                         </StackPanel>
                         <TextBlock Foreground="{StaticResource Muted}" Margin="0,8,0,0" TextWrapping="Wrap"
-                                   Text="在“改为”一列填新数量，再点“应用修改”；留空的不改。只开放强化、摄魂、养成材料和钱，剧情物品、珍宝、书页等只能查看。&#x0a;修改通过游戏自己的加减物品函数完成，改完会自动重新读取核对。本程序每次运行第一次修改前，会把存档备份到程序旁的 data\save-backups。需要游戏在运行、已进入角色，PBZSuite 1.0.1。" />
+                                   Text="在“改为”一列填新数量，再点“应用修改”；留空的不改。只开放强化、摄魂、养成材料和钱，剧情物品、珍宝、书页等只能查看。&#x0a;修改通过游戏自己的加减物品函数完成，改完会自动重新读取核对。本程序每次运行第一次修改前，会把存档备份到程序旁的 data\save-backups。需要游戏在运行、已进入角色，PBZSuite 1.0.2。" />
                     </StackPanel>
                     <DataGrid x:Name="ItemGrid" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
                               HeadersVisibility="Column" SelectionMode="Extended" RowHeight="28" GridLinesVisibility="Horizontal"
@@ -321,6 +321,106 @@
                     </DataGrid>
                 </DockPanel>
             </TabItem>
+            <TabItem Header="玩家工具">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <TextBlock x:Name="PlayerInfo" Style="{StaticResource Value}" Foreground="{StaticResource Muted}" Margin="2,0,0,8" Text="游戏未连接" />
+                        <GroupBox Header="速度与移动">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,2">
+                                    <TextBlock Style="{StaticResource Label}" Width="150" Text="游戏速度（0.1–5 倍）" VerticalAlignment="Center" />
+                                    <TextBox x:Name="GameSpeedBox" Tag="game" Width="70" VerticalContentAlignment="Center" LostFocus="CheatBox_Commit" KeyDown="CheatBox_KeyDown" />
+                                    <TextBlock Style="{StaticResource Label}" Width="150" Text="移动速度（0.5–5 倍）" Margin="24,3,12,3" VerticalAlignment="Center" />
+                                    <TextBox x:Name="MoveSpeedBox" Tag="move" Width="70" VerticalContentAlignment="Center" LostFocus="CheatBox_Commit" KeyDown="CheatBox_KeyDown" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,8,0,2">
+                                    <CheckBox x:Name="FlyBox" Width="230" Content="飞行（关闭碰撞，可穿墙）" VerticalAlignment="Center" Checked="FlyBox_Changed" Unchecked="FlyBox_Changed" />
+                                    <Button x:Name="HotkeyFly" Tag="fly" MinWidth="110" Click="Hotkey_Click" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,6,0,2">
+                                    <Button Content="上升 2 米" Click="Up_Click" />
+                                    <Button x:Name="HotkeyFlyUp" Tag="flyup" MinWidth="110" Click="Hotkey_Click" />
+                                    <Button Content="下降 2 米" Click="Down_Click" Margin="16,0,0,0" />
+                                    <Button x:Name="HotkeyFlyDown" Tag="flydown" MinWidth="110" Click="Hotkey_Click" />
+                                    <Button Content="向前 5 米" Click="Forward_Click" Margin="16,0,0,0" />
+                                </StackPanel>
+                            </StackPanel>
+                        </GroupBox>
+                        <GroupBox Header="战斗">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,2">
+                                    <TextBlock Style="{StaticResource Label}" Width="150" Text="造成伤害（0.1–100 倍）" VerticalAlignment="Center" />
+                                    <TextBox x:Name="DamageBox" Tag="damage" Width="70" VerticalContentAlignment="Center" LostFocus="CheatBox_Commit" KeyDown="CheatBox_KeyDown" />
+                                    <TextBlock Style="{StaticResource Label}" Width="150" Text="受到伤害（0–5 倍）" Margin="24,3,12,3" VerticalAlignment="Center" />
+                                    <TextBox x:Name="TakenBox" Tag="taken" Width="70" VerticalContentAlignment="Center" LostFocus="CheatBox_Commit" KeyDown="CheatBox_KeyDown" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,8,0,2">
+                                    <CheckBox x:Name="MedicineBox" Content="无限药（装备的两种药保持满次数）" VerticalAlignment="Center" Checked="MedicineBox_Changed" Unchecked="MedicineBox_Changed" />
+                                    <Button Content="全部恢复正常" Margin="24,0,0,0" Click="ResetCheats_Click" />
+                                </StackPanel>
+                            </StackPanel>
+                        </GroupBox>
+                        <GroupBox Header="传送">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,2,0,6">
+                                    <TextBox x:Name="WaypointName" Width="160" VerticalContentAlignment="Center" ToolTip="记录点名称（可留空）" />
+                                    <Button Content="记录当前位置" Click="SavePosition_Click" />
+                                    <Button x:Name="HotkeySavePos" Tag="savepos" MinWidth="110" Click="Hotkey_Click" />
+                                    <Button Content="传送到选中" Margin="16,0,0,0" Click="Teleport_Click" />
+                                    <Button x:Name="HotkeyTeleport" Tag="teleport" MinWidth="110" Click="Hotkey_Click" />
+                                    <Button Content="撤销上次传送" Margin="16,0,0,0" Click="UndoTeleport_Click" />
+                                    <Button Content="删除选中" Click="DeleteWaypoint_Click" />
+                                </StackPanel>
+                                <DataGrid x:Name="WaypointGrid" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" Height="170"
+                                          HeadersVisibility="Column" SelectionMode="Extended" RowHeight="28" GridLinesVisibility="Horizontal" CellEditEnding="WaypointGrid_CellEditEnding">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="名称（双击可改）" Width="220" Binding="{Binding Name, UpdateSourceTrigger=PropertyChanged}" />
+                                        <DataGridTextColumn Header="位置" Width="*" Binding="{Binding Where}" IsReadOnly="True" />
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </StackPanel>
+                        </GroupBox>
+                        <GroupBox Header="等级与经验（试验）">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock x:Name="LevelInfo" Style="{StaticResource Value}" Width="260" VerticalAlignment="Center" Text="当前等级 —，经验 —" />
+                                <TextBlock Style="{StaticResource Label}" Text="等级改为" VerticalAlignment="Center" />
+                                <TextBox x:Name="LevelNew" Width="70" VerticalContentAlignment="Center" />
+                                <TextBlock Style="{StaticResource Label}" Text="经验改为" Margin="16,3,12,3" VerticalAlignment="Center" />
+                                <TextBox x:Name="XpNew" Width="110" VerticalContentAlignment="Center" />
+                                <Button Content="应用" Margin="12,0,0,0" Click="ApplyLevel_Click" />
+                            </StackPanel>
+                        </GroupBox>
+                        <TextBlock Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="2,0"
+                                   Text="数值框改完按回车或点别处生效；1 倍即正常。造成伤害填很大（如 100）接近一击必杀；受到伤害填 0 即不受伤。游戏自己的慢动作（完美闪避、处决）照常发生，结束后回到你设的速度。&#x0a;飞行时角色没有碰撞，可以穿过墙和地面：用“上升 / 下降”调高度，落地前先关飞行。传送和飞行也能用来脱离卡住的地形。记录点存在程序旁 data\teleports.json，只能在同一张地图内传送。&#x0a;这些设置每次启动本程序时都是正常值，关闭本程序时自动恢复正常。等级与经验直接改角色属性，是否影响加点、是否会被游戏改回尚未实测，改前建议手动备份存档。需要 PBZSuite 1.0.3，游戏版本经过验证。" />
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+            <TabItem Header="场景修复">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
+                        <Button Content="扫描附近（20 米）" Click="ScanScene_Click" />
+                        <TextBlock x:Name="SceneState" Style="{StaticResource Value}" Foreground="{StaticResource Muted}" Margin="16,3,0,3" VerticalAlignment="Center" TextWrapping="Wrap" Text="还没有扫描" />
+                    </StackPanel>
+                    <StackPanel DockPanel.Dock="Bottom" Margin="0,8,0,0">
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="打开 / 溶解" Click="SceneDissolve_Click" />
+                            <Button Content="移除（隐藏并可穿过）" Click="SceneRemove_Click" />
+                            <Button Content="恢复原样" Click="SceneRestore_Click" />
+                        </StackPanel>
+                        <TextBlock Foreground="{StaticResource Muted}" Margin="0,8,0,0" TextWrapping="Wrap"
+                                   Text="用于坏档：一次性的机关（例如戏梦山庄挡住密道的幻术挂画）关上后再也打不开时，走到它跟前点“扫描附近”，选中它，再点“打开 / 溶解”。认识的机关排在最前并写明做法；其余的按类型粗略命名，可以先用“移除”试，不对就“恢复原样”（溶解过的不能恢复，读档即可）。&#x0a;这些改动只在当前场景里有效，游戏不会存下来：读档或离开区域再回来会恢复原样，需要时再做一次。进去后拿到的东西、触发的剧情一般由游戏各自记录。本程序每次运行第一次操作前，会把存档备份到程序旁的 data\save-backups。需要游戏在运行、已进入角色，PBZSuite 1.0.3。" />
+                    </StackPanel>
+                    <DataGrid x:Name="SceneGrid" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" IsReadOnly="True"
+                              HeadersVisibility="Column" SelectionMode="Extended" RowHeight="28" GridLinesVisibility="Horizontal">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="名称" Width="160" Binding="{Binding Name}" />
+                            <DataGridTextColumn Header="距离" Width="70" Binding="{Binding Distance}" />
+                            <DataGridTextColumn Header="状态" Width="120" Binding="{Binding State}" />
+                            <DataGridTextColumn Header="说明" Width="*" Binding="{Binding Detail}" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </DockPanel>
+            </TabItem>
             <TabItem Header="战斗辅助">
                 <StackPanel>
                     <GroupBox Header="自动弹反 / 闪避">
@@ -334,6 +434,9 @@
                             </StackPanel>
                             <CheckBox x:Name="ParryDeflect" Content="可弹反的攻击自动弹反" Margin="0,2" Checked="ParryOption_Changed" Unchecked="ParryOption_Changed" />
                             <CheckBox x:Name="ParryDodge" Content="只能闪避的攻击（红光等）自动闪避" Margin="0,2" Checked="ParryOption_Changed" Unchecked="ParryOption_Changed" />
+                            <CheckBox x:Name="ParryComboHold" Content="连段时按住弹反键直到连段结束（试验；默认每一击单独点按）" Margin="0,2" Checked="ParryOption_Changed" Unchecked="ParryOption_Changed" />
+                            <TextBlock Style="{StaticResource Label}" Text="各类攻击的应对（游戏内会标出攻击类型；黑光等新类型遇到后可在这里改）" Margin="0,10,0,4" />
+                            <WrapPanel x:Name="ParryTypePanel" Orientation="Horizontal" />
                             <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
                                 <TextBlock Style="{StaticResource Label}" Text="弹反键" VerticalAlignment="Center" />
                                 <ComboBox x:Name="ParryDeflectKey" Width="110" DisplayMemberPath="Name" SelectedValuePath="Id" SelectionChanged="ParryKey_Changed" />
@@ -350,7 +453,7 @@
                         </StackPanel>
                     </GroupBox>
                     <TextBlock Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="2,0"
-                               Text="原理：敌人出招时游戏会提前约 0.3 秒通知被攻击的角色（红光等只能闪避的攻击约提前 0.5 秒）。打开后，游戏内模块在命中前按“提前量”通知本程序，本程序替你按一下真实的弹反键或闪避键（短按）；远程波等没有确定命中时间的攻击，出现时立刻处理。只在游戏窗口处于前台时才会按键。&#x0a;用手柄玩也可以用：游戏同时接受键鼠和手柄，本程序按的是键鼠按键（界面提示图标可能会短暂切换）。&#x0a;统计：“受击”= 自动操作后血量仍然下降，可用来调提前量：受击多就加大或减小提前量再试。&#x0a;热键是系统级的（游戏全屏也有效），点按钮可以改。本程序每次启动时此功能是关闭的；关闭本程序时自动关闭。需要 PBZSuite 1.0.1。" />
+                               Text="原理：敌人出招时游戏会提前约 0.3 秒通知被攻击的角色（红光等只能闪避的攻击约提前 0.5 秒）。打开后，游戏内模块在敌人出招的一瞬间把“几毫秒后按键”告诉本程序，本程序按“提前量”准时替你按下真实的弹反键或闪避键（慢动作时自动换算），连段的每一击各自排程、互不耽误；远程波等没有确定命中时间的攻击，出现时立刻处理。只在游戏窗口处于前台时才会按键。&#x0a;用手柄玩也可以用：游戏同时接受键鼠和手柄，本程序按的是键鼠按键（界面提示图标可能会短暂切换）。&#x0a;统计：“受击”= 自动操作后掉血超过最大血量的 1%（格挡擦伤、流血不算）。每一次的明细（攻击类型、实际提前量、结果）记在游戏目录 ue4ss\UE4SS.log 的 parry 行；本程序的收到与按键记录在 data\parry-relay.log。&#x0a;热键是系统级的（游戏全屏也有效），点按钮可以改。本程序每次启动时此功能是关闭的；关闭本程序时自动关闭。需要 PBZSuite 1.0.2。" />
                 </StackPanel>
             </TabItem>
         </TabControl>

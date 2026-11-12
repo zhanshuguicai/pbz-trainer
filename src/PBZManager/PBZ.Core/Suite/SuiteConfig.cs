@@ -18,16 +18,46 @@ public sealed record SuiteLock(bool Enabled, bool Health, bool Shachi, bool Ulti
 }
 
 // Auto deflect / dodge options (T5b). The master switch is SuiteModules.Parry. LeadMs: press this long before the hit.
-public sealed record SuiteParry(bool Deflect = true, bool Dodge = true, int LeadMs = 120)
+// Actions: per attack type ("0".."5" = EDeflectBulletType) one of "deflect", "hold", "dodge", "none"; missing = default.
+public sealed record SuiteParry(bool Deflect = true, bool Dodge = true, int LeadMs = 120, Dictionary<string, string>? Actions = null)
 {
     public const int MaxLeadMs = 300;
+
+    // Records compare dictionaries by reference; compare the contents for "did anything change".
+    public bool SameAs(SuiteParry? other) =>
+        other is not null && Deflect == other.Deflect && Dodge == other.Dodge && LeadMs == other.LeadMs
+        && (Actions ?? []).OrderBy(kv => kv.Key).SequenceEqual((other.Actions ?? []).OrderBy(kv => kv.Key));
+}
+
+// The game's attack types (EDeflectBulletType) and what the manager offers for each.
+public static class AttackTypes
+{
+    public static readonly IReadOnlyList<(string Id, string Name, string DefaultAction)> All =
+    [
+        ("1", "普通", "deflect"),
+        ("2", "蓝光（BlueEye）", "deflect"),
+        ("3", "红光（RedEye）", "dodge"),
+        ("0", "不可弹反（CantDeflect）", "dodge"),
+        ("4", "重击（PowerAttack）", "deflect"),
+        ("5", "长按弹反（HoldDeflect）", "hold"),
+    ];
+
+    public static readonly IReadOnlyList<(string Action, string Name)> Actions =
+    [
+        ("deflect", "弹反（点按）"),
+        ("hold", "弹反（按住到命中）"),
+        ("dodge", "闪避"),
+        ("none", "不处理"),
+    ];
 }
 
 // One item edit for the game (T5a). Kind "item" (Id = inventory id) or "money"; the game applies each Seq once.
 public sealed record ItemOp(long Seq, string Kind, string? Id, long Target);
 
 public sealed record SuiteConfig(int Revision, bool Compatible, SuiteModules Modules, string ParryHotkey, SuiteLock? Lock = null,
-    int InventoryRequest = 0, List<ItemOp>? ItemOps = null, SuiteParry? Parry = null)
+    int InventoryRequest = 0, List<ItemOp>? ItemOps = null, SuiteParry? Parry = null,
+    int SceneRequest = 0, List<PBZ.Core.Scene.SceneOp>? SceneOps = null,
+    PBZ.Core.Player.SuiteCheats? Cheats = null, List<PBZ.Core.Player.PlayerOp>? PlayerOps = null)
 {
     public static SuiteConfig Default => new(0, false, new SuiteModules(false, false), "F7", SuiteLock.Off);
 }

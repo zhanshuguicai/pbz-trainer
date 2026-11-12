@@ -6,23 +6,28 @@
 - 任务表与完成标准：[P4 任务](docs/p4-tasks.md)；产品规则（用户确认 + Claude 决定，逐条标来源）：[产品规则](docs/decisions/2026-11-03-product-rules.md)
 - 游戏数据读法与实测现象：[三字段数据来源](docs/p2-field-sources.md)；最初的交接规划：[完整交接](docs/影之刃零Mod_Claude完整交接与实施规划_20261103.md)（历史背景，状态以本文件为准）
 
-## 当前状态（2026-11-04，1.0.1）
+## 当前状态（2026-11-12，发布版 1.0.1，开发中 1.0.3）
 - 全部功能完成并经用户实测：状态与遥测、条件播放器（22 种事件含 Boss、附加条件、淡出、每条规则播放设置、热键、导入导出）、数值修改（锁满/固定值）、物品与钱、自动弹反/闪避（真实按键，未受击约 85%）。界面按《影之刃零》风格重做。
 - 版本 1.0.1（修改器与 PBZSuite）。公开仓库 https://github.com/zhanshuguicai/pbz-trainer（main，标签 v1.0.1 = 提交 e648ff9），只含代码与文档；本机目录即该仓库的工作副本。Release：https://github.com/zhanshuguicai/pbz-trainer/releases/tag/v1.0.1 ，附 `PBZTrainer-1.0.1-win-x64.zip`（自带运行时的单文件修改器、加载器、一键脚本、保姆式教程 docs/使用教程.md）。
 - 游戏：Steam appid 4115450，已验证 build 26266538 与 26367565（2026-11-04 03:29 更新）。游戏更新后修改器自动停用写入功能。
 - 游戏目录：UE4SS + PR #1484 配置、`Mods/PBZSuite`（游戏里是 1.0.0 的 Boss 修复版，1.0.1 只差版本号，待用修改器更新）、`Mods/PBZProbe`（只读探针）。
-- 代码：`src/PBZSuite/`（Lua）、`src/PBZManager/PBZManager.sln`（PBZ.Core、95 个测试、WPF）。修改器数据在 exe 旁 `data\`。
+- 代码：`src/PBZSuite/`（Lua）、`src/PBZManager/PBZManager.sln`（PBZ.Core、117 个测试、WPF）。修改器数据在 exe 旁 `data\`。
+- **用户实际运行的是桌面副本 `C:\Users\38365\Desktop\net10.0-windows\PBZManager.exe`（有自己的 `data\`：规则、热键、提前量 100、连段按住开）**，不是项目 bin 里那份。2026-11-07 覆盖为 1.0.2；**1.0.3 尚未覆盖**（Claude 的复制命令被自动权限检查拦下，需用户自己复制或批准）。以后更新：关掉它 → 复制 bin\Debug\net10.0-windows 下除 data 外的全部文件过去。
 - 用户未要求派工，全部由 Claude（Opus）执行。
 
 ## 进行中
-- 无。
+- 1.0.3 已提交到本地 main（未推送、未出 Release）：1.0.2 自动弹反 + 场景修复页 + 玩家工具页（游戏/移动速度、伤害倍率、无限药、飞行、传送、等级经验）。117 个测试通过，**游戏内全部未实测**。日志：[玩家工具](docs/worklog/2026-11-12-player-tools-claude.md)、[场景修复与复查](docs/worklog/2026-11-12-scene-repair-review-claude.md)、[弹反 1.0.2](docs/worklog/2026-11-07-parry-timing-types-claude.md)。
 
 ## 下一步
-1. 用户关修改器后 `dotnet build` 重编正式输出，再"安装 / 更新"到 PBZSuite 1.0.1。
-2. 可选：为仓库选许可证（未替用户选）；提交邮箱是否改为 GitHub noreply。发布新版按 [发布日志](docs/worklog/2026-11-04-release-package-claude.md) 的步骤打包。
-3. 补测：钱修改与读档保持、物品中文名（目前显示 ID）、手柄虚拟输入（产品规则 22）。
+1. 用户关游戏和修改器 → 覆盖桌面副本 → "安装 / 更新"到 PBZSuite 1.0.3 → 逐项实测：戏梦山庄画前"场景修复"扫描并溶解；玩家工具各项（看 UE4SS.log 的 `player op`、`scale ... error`）；实战弹反（对照 `parry #序号` 与 `data\parry-relay.log`），遇黑光记下时间。
+2. 实测有问题先修；通过后推送并按 [发布日志](docs/worklog/2026-11-04-release-package-claude.md) 出 1.0.3 Release（需用户同意）。
+3. 自动 QTE：没有任何证据，遇到 QTE 时用探针抓控件 / 能力 / 标签后再设计。
+4. 可选：许可证；提交邮箱是否改为 GitHub noreply；按攻击类型分别设提前量；补测钱修改与读档保持、物品中文名、手柄虚拟输入（产品规则 22）。
 
 ## 已知问题与坑
+- **WPF 分部类之间静态字段初始化顺序不确定**：MainWindow.*.cs 里引用 `DataDir` 的静态值要写成属性（2026-11-12 因此启动崩溃过一次）。
+- 玩家工具按倍率改属性：游戏若每帧重算某属性（例如移动速度可能另有 FinalWalkSpeed），倍率会失效；受到伤害倍率用的是 TakenReductionMultiplier_*，含义由命名推断。
+- **Lua 主代码块中途报错时，前面注册的循环照常运行**，界面看起来"半好"（2026-11-07 弹反循环因此没启动）。修改器现在会在状态页红字提示 UE4SS.log 里的 PBZSuite 脚本错误；改 main.lua 后要检查删掉的常量/函数是否还有人用。
 - **注入 Enhanced Input / 直接启动能力不能代替按键**（evidence/t5b）；**UE4SS 的 LoopInGameThreadWithDelay 返回 true 不会停止**。
 - **游戏更新会让修改器自动停用写入功能**（白名单在 `PBZ.Core/Game/GameInstall.cs`）；有新版本实测证据后再加。
 - **Claude 桌面应用启动的进程（我的命令、`--snapshot`）写进 AppData 的新文件会被重定向到 `AppData\Local\Packages\Claude_pzs8sxrjxfjjc\LocalCache`，用户看不到**。共享的东西不要放 AppData；修改器已改用 exe 旁 `data\`。
@@ -50,8 +55,8 @@
 - 全部撤销（游戏退出后，按顺序）：修改器"卸载"或 `tools/pbzsuite.ps1 -Mode Rollback` → `probe/p2-probe.ps1 -Mode Rollback` → `probe/p1-loader.ps1 -Mode Rollback`。
 
 ## 最近工作日志
+- [玩家工具 1.0.3、提交](docs/worklog/2026-11-12-player-tools-claude.md)
+- [场景修复 1.0.3、复查、调研](docs/worklog/2026-11-12-scene-repair-review-claude.md)
+- [自动弹反 1.0.2：精确排程、连段、攻击类型](docs/worklog/2026-11-07-parry-timing-types-claude.md)
 - [Release 1.0.1 发布包与教程](docs/worklog/2026-11-04-release-package-claude.md)
 - [界面主题与 1.0.1 发布](docs/worklog/2026-11-04-ui-theme-release-101-claude.md)
-- [音乐 1.0 扩充、T6 开头](docs/worklog/2026-11-04-music-boss-rich-claude.md)
-- [T5a 完成、T5b 调查与探针](docs/worklog/2026-11-04-t5a-done-t5b-probe-claude.md)
-- [T8 数值修改、热键、图标](docs/worklog/2026-11-04-t8-value-lock-claude.md)
