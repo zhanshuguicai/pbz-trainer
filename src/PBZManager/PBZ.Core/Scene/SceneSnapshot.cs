@@ -3,7 +3,7 @@ using PBZ.Core.Suite;
 
 namespace PBZ.Core.Scene;
 
-// One nearby mechanism listed by PBZSuite 1.0.3 (runtime/scene.json). Path is the object path the game finds it by.
+// One nearby mechanism listed by PBZSuite 2.0.0 (runtime/scene.json). Path is the object path the game finds it by.
 public sealed record SceneActor(string Path, string Class, int Distance, string? Desc, string? Flow, bool Hidden, bool Collision, bool Saved)
 {
     public SceneKnown.Entry? Known => SceneKnown.Find(this);

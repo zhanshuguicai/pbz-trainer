@@ -6,7 +6,7 @@ namespace PBZ.Core.Tests;
 [TestClass]
 public sealed class SceneTests
 {
-    // Shaped like what PBZSuite 1.0.3 writes; the painting is the real one from 戏梦山庄 (probe 2026-11-11).
+    // Shaped like what PBZSuite 2.0.0 writes; the painting is the real one from 戏梦山庄 (probe 2026-11-11).
     private const string Json = """
         {"seq":3,"sessionId":"abc","reason":"edit","valid":true,"world":"PBZ_Ximeng_WP","actors":[
           {"path":"/Game/Maps/B08_09_12_13/PBZ_Ximeng_WP.PBZ_Ximeng_WP:PersistentLevel.BP_SlenderDoor_C_UAID_1","class":"BP_SlenderDoor_C","distance":107,"desc":null,"flow":null,"hidden":false,"collision":true,"saved":false},

@@ -31,7 +31,7 @@ public sealed record FlaskSlot(string? Id, int? Count, bool Valid);
 
 public sealed record FlaskSample(FlaskSlot? Top, FlaskSlot? Bottom, int? Total, bool Valid);
 
-// Player tools (suite 1.0.3+): where the character is, XP / level, the game speed in effect, and one-shot op results.
+// Player tools (suite 2.0.0+): where the character is, XP / level, the game speed in effect, and one-shot op results.
 public sealed record PlayerOpResult(long Seq, string? Kind, bool Ok, string? Error, double? FromX, double? FromY, double? FromZ,
     double? Before, double? After);
 

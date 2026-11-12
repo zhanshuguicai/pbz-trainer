@@ -71,7 +71,7 @@ public sealed class PlayerToolsTests
     public void Telemetry_ParsesPlayer()
     {
         var line = """
-            {"schemaVersion":1,"sessionId":"s","sequence":1,"monotonicMs":5,"lifecycle":"playing","suiteVersion":"1.0.3",
+            {"schemaVersion":1,"sessionId":"s","sequence":1,"monotonicMs":5,"lifecycle":"playing","suiteVersion":"2.0.0",
              "player":{"valid":true,"world":"PBZ_Ximeng_WP","position":{"x":-211529,"y":98749,"z":5103},"xp":1200,"level":7,
                        "gameSpeed":2,"fly":true,"results":[{"seq":9,"kind":"teleport","ok":true,"from":{"x":1,"y":2,"z":3}},
                                                           {"seq":10,"kind":"xp","ok":false,"error":"no attributes"}]}}

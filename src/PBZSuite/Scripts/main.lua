@@ -9,14 +9,14 @@
 -- T5b auto deflect / dodge: watches incoming attack frames on the player's DeflectComponent and, a moment before each
 -- hit, asks the manager (runtime/parry-cmd.txt) to press the real deflect or dodge key (IsDodge frames get a dodge).
 -- Injected Enhanced Input and direct ability activation were tried first and do nothing in this game (evidence/t5b).
--- 1.0.3 player tools: game speed, move speed, damage dealt / taken, unlimited medicine, fly, teleport, XP / level.
--- 1.0.3 scene repair: lists nearby mechanisms and can dissolve / hide / restore one, for saves stuck behind one-time
+-- 2.0.0 player tools: game speed, move speed, damage dealt / taken, unlimited medicine, fly, teleport, XP / level.
+-- 2.0.0 scene repair: lists nearby mechanisms and can dissolve / hide / restore one, for saves stuck behind one-time
 -- scene mechanisms (changes are not saved by the game).
 -- Writing is refused unless the manager has set compatible=true for this game build.
 
 local UEHelpers = require("UEHelpers")
 
-local SUITE_VERSION = "1.0.3"
+local SUITE_VERSION = "2.0.0"
 local SCHEMA_VERSION = 1
 local GAME_BUILD = "26367565"
 local SAMPLE_MS = 200
@@ -663,7 +663,7 @@ local function itemsTick()
     end
 end
 
--- ---------- scene repair (1.0.3) ----------
+-- ---------- scene repair (2.0.0) ----------
 -- For saves stuck behind one-time scene mechanisms (2026-11-11: the 冷图密道 illusion painting in 戏梦山庄 had closed
 -- again and could not be triggered a second time). On request lists nearby mechanisms to runtime/scene.json; ops
 -- { seq, kind = "dissolve" | "remove" | "restore", path } act on one actor by its object path.
@@ -991,7 +991,7 @@ local function parryTick()
     end
 end
 
--- ---------- player tools (1.0.3) ----------
+-- ---------- player tools (2.0.0) ----------
 -- Continuous settings from config.cheats (all neutral by default): game speed, move speed, damage dealt / taken
 -- multipliers, unlimited medicine, fly (no collision). One-shot ops from config.playerOps: teleport to x/y/z, nudge
 -- (up / down / forward), set XP or Level. Position and op results go out with the telemetry (record.player).

@@ -70,7 +70,7 @@ public partial class MainWindow
             if (_sceneRequestedAt != DateTime.MinValue && (DateTime.UtcNow - _sceneRequestedAt).TotalSeconds > 6)
             {
                 _sceneRequestedAt = DateTime.MinValue;
-                SceneState.Text = "游戏没有回应：游戏内模块可能是旧版，请关闭游戏后在“状态”页点“安装 / 更新”（需要 PBZSuite 1.0.3）";
+                SceneState.Text = "游戏没有回应：游戏内模块可能是旧版，请关闭游戏后在“状态”页点“安装 / 更新”（需要 PBZSuite 2.0.0）";
             }
             return;
         }

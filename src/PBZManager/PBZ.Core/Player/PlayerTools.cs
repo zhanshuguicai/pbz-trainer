@@ -3,7 +3,7 @@ using PBZ.Core.Suite;
 
 namespace PBZ.Core.Player;
 
-// Continuous player settings for PBZSuite 1.0.3 (config.json "cheats"). Neutral values (1, false) mean off.
+// Continuous player settings for PBZSuite 2.0.0 (config.json "cheats"). Neutral values (1, false) mean off.
 // GameSpeed: global time dilation. MoveSpeed: jog / sprint / walk / crouch speed. Damage: Attack and ShachiAttack.
 // Taken: the game's damage-taken multipliers (0 = no damage). Medicine: keep the equipped medicines full. Fly: fly
 // with collision off.

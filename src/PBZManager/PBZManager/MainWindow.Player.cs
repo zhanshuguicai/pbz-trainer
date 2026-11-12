@@ -158,7 +158,7 @@ public partial class MainWindow
 
     private void SavePosition()
     {
-        if (_last?.Player is not { Valid: true, X: { } x, Y: { } y, Z: { } z } p) { Say("读不到角色位置：游戏没在运行，或游戏内模块不是 1.0.3"); return; }
+        if (_last?.Player is not { Valid: true, X: { } x, Y: { } y, Z: { } z } p) { Say("读不到角色位置：游戏没在运行，或游戏内模块不是 2.0.0"); return; }
         var name = string.IsNullOrWhiteSpace(WaypointName.Text) ? $"记录点 {DateTime.Now:MM-dd HH:mm:ss}" : WaypointName.Text.Trim();
         var row = new WaypointRow(new Waypoint(name, p.World ?? "?", x, y, z));
         _waypoints.Insert(0, row);
@@ -230,7 +230,7 @@ public partial class MainWindow
     {
         if (_last?.Player is not { } p)
         {
-            PlayerInfo.Text = _last is null ? "游戏未连接" : "游戏内模块不是 1.0.3，玩家工具不可用（请在“状态”页安装 / 更新）";
+            PlayerInfo.Text = _last is null ? "游戏未连接" : "游戏内模块不是 2.0.0，玩家工具不可用（请在“状态”页安装 / 更新）";
             return;
         }
         PlayerInfo.Text = p.Valid

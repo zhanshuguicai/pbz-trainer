@@ -22,7 +22,7 @@
                     </StackPanel>
                     <Rectangle Height="3" Width="300" HorizontalAlignment="Left" Fill="{StaticResource BladeStroke}" Margin="0,2,0,0" />
                 </StackPanel>
-                <TextBlock Grid.Column="2" x:Name="VersionText" Text="v1.0.3 · 单机本地修改器" Foreground="{StaticResource Muted}" VerticalAlignment="Bottom" FontFamily="{StaticResource Kai}" FontSize="14" />
+                <TextBlock Grid.Column="2" x:Name="VersionText" Text="v2.0.0 · 单机本地修改器" Foreground="{StaticResource Muted}" VerticalAlignment="Bottom" FontFamily="{StaticResource Kai}" FontSize="14" />
             </Grid>
         </Border>
 
@@ -391,7 +391,7 @@
                             </StackPanel>
                         </GroupBox>
                         <TextBlock Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="2,0"
-                                   Text="数值框改完按回车或点别处生效；1 倍即正常。造成伤害填很大（如 100）接近一击必杀；受到伤害填 0 即不受伤。游戏自己的慢动作（完美闪避、处决）照常发生，结束后回到你设的速度。&#x0a;飞行时角色没有碰撞，可以穿过墙和地面：用“上升 / 下降”调高度，落地前先关飞行。传送和飞行也能用来脱离卡住的地形。记录点存在程序旁 data\teleports.json，只能在同一张地图内传送。&#x0a;这些设置每次启动本程序时都是正常值，关闭本程序时自动恢复正常。等级与经验直接改角色属性，是否影响加点、是否会被游戏改回尚未实测，改前建议手动备份存档。需要 PBZSuite 1.0.3，游戏版本经过验证。" />
+                                   Text="数值框改完按回车或点别处生效；1 倍即正常。造成伤害填很大（如 100）接近一击必杀；受到伤害填 0 即不受伤。游戏自己的慢动作（完美闪避、处决）照常发生，结束后回到你设的速度。&#x0a;飞行时角色没有碰撞，可以穿过墙和地面：用“上升 / 下降”调高度，落地前先关飞行。传送和飞行也能用来脱离卡住的地形。记录点存在程序旁 data\teleports.json，只能在同一张地图内传送。&#x0a;这些设置每次启动本程序时都是正常值，关闭本程序时自动恢复正常。等级与经验直接改角色属性，是否影响加点、是否会被游戏改回尚未实测，改前建议手动备份存档。需要 PBZSuite 2.0.0，游戏版本经过验证。" />
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>
@@ -408,7 +408,7 @@
                             <Button Content="恢复原样" Click="SceneRestore_Click" />
                         </StackPanel>
                         <TextBlock Foreground="{StaticResource Muted}" Margin="0,8,0,0" TextWrapping="Wrap"
-                                   Text="用于坏档：一次性的机关（例如戏梦山庄挡住密道的幻术挂画）关上后再也打不开时，走到它跟前点“扫描附近”，选中它，再点“打开 / 溶解”。认识的机关排在最前并写明做法；其余的按类型粗略命名，可以先用“移除”试，不对就“恢复原样”（溶解过的不能恢复，读档即可）。&#x0a;这些改动只在当前场景里有效，游戏不会存下来：读档或离开区域再回来会恢复原样，需要时再做一次。进去后拿到的东西、触发的剧情一般由游戏各自记录。本程序每次运行第一次操作前，会把存档备份到程序旁的 data\save-backups。需要游戏在运行、已进入角色，PBZSuite 1.0.3。" />
+                                   Text="用于坏档：一次性的机关（例如戏梦山庄挡住密道的幻术挂画）关上后再也打不开时，走到它跟前点“扫描附近”，选中它，再点“打开 / 溶解”。认识的机关排在最前并写明做法；其余的按类型粗略命名，可以先用“移除”试，不对就“恢复原样”（溶解过的不能恢复，读档即可）。&#x0a;这些改动只在当前场景里有效，游戏不会存下来：读档或离开区域再回来会恢复原样，需要时再做一次。进去后拿到的东西、触发的剧情一般由游戏各自记录。本程序每次运行第一次操作前，会把存档备份到程序旁的 data\save-backups。需要游戏在运行、已进入角色，PBZSuite 2.0.0。" />
                     </StackPanel>
                     <DataGrid x:Name="SceneGrid" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" IsReadOnly="True"
                               HeadersVisibility="Column" SelectionMode="Extended" RowHeight="28" GridLinesVisibility="Horizontal">
