@@ -102,6 +102,7 @@ public sealed class MusicLibraryTests
 
         var lockSettings = LockSettings.Load(Path.Combine(defaults, "lock.json"));
         Assert.AreEqual(100, lockSettings.ParryLeadMs);
+        Assert.IsFalse(lockSettings.ParryComboHold, "the experimental combo hold is off by default (user, 2026-11-18)");
         Assert.AreEqual("F7", lockSettings.HotkeyText(LockActions.Parry));
         Assert.AreEqual("Ctrl+F9", lockSettings.HotkeyText(LockActions.SavePos), "hotkeys added later still get their defaults");
     }

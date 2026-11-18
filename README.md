@@ -7,7 +7,7 @@
 
 只修改本机进程中的单机游戏状态，不联网，不涉及他人。
 
-**普通玩家请直接下载 [Releases](https://github.com/zhanshuguicai/pbz-trainer/releases) 里的 `PBZTrainer-2.0.1-win-x64.zip`（自带运行环境、加载器和一键安装脚本），然后照着 [使用教程](docs/使用教程.md) 一步步做。**
+**普通玩家请直接下载 [Releases](https://github.com/zhanshuguicai/pbz-trainer/releases) 里的 `PBZTrainer-2.0.2-win-x64.zip`（自带运行环境、加载器和一键安装脚本），然后照着 [使用教程](docs/使用教程.md) 一步步做。**
 
 ## 功能
 

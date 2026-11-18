@@ -22,7 +22,7 @@
                     </StackPanel>
                     <Rectangle Height="3" Width="300" HorizontalAlignment="Left" Fill="{StaticResource BladeStroke}" Margin="0,2,0,0" />
                 </StackPanel>
-                <TextBlock Grid.Column="2" x:Name="VersionText" Text="v2.0.1 · 单机本地修改器" Foreground="{StaticResource Muted}" VerticalAlignment="Bottom" FontFamily="{StaticResource Kai}" FontSize="14" />
+                <TextBlock Grid.Column="2" x:Name="VersionText" Text="v2.0.2 · 单机本地修改器" Foreground="{StaticResource Muted}" VerticalAlignment="Bottom" FontFamily="{StaticResource Kai}" FontSize="14" />
             </Grid>
         </Border>
 

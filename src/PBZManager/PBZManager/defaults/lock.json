@@ -19,7 +19,7 @@
   "parryLeadMs": 100,
   "parryDeflectKey": "RightMouse",
   "parryDodgeKey": "LeftShift",
-  "parryComboHold": true,
+  "parryComboHold": false,
   "parryActions": null,
   "values": {}
 }
