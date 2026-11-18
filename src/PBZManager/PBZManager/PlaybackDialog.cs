@@ -93,6 +93,7 @@ public sealed class PlaybackDialog : Window
         {
             Title = "添加歌曲（可多选）",
             Filter = "音频文件|*.mp3;*.wav;*.wma;*.m4a;*.aac;*.flac|所有文件|*.*",
+            InitialDirectory = PBZ.Core.Music.MusicLibrary.Folder(AppContext.BaseDirectory),
             Multiselect = true,
         };
         if (dialog.ShowDialog(this) != true) return;

@@ -3,8 +3,8 @@ using System.Text.Json.Serialization;
 
 namespace PBZ.Core.Music;
 
-// Manager-only settings (%LOCALAPPDATA%\PBZManager\settings.json). Audio files stay where the user keeps them;
-// only their paths are stored (ADR 0001: no audio is copied into the project or the package).
+// Manager-only settings (data\settings.json next to the exe). Songs are kept in the "music" folder next to the exe
+// (see MusicLibrary). No audio goes into the repository or the release package: the songs are copyrighted.
 public sealed record MusicSettings(bool Enabled, double Volume, int FadeOutMs, List<PlayRule>? Rules)
 {
     // Fields of the T4d format, read once and turned into rules.

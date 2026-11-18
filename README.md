@@ -7,7 +7,7 @@
 
 只修改本机进程中的单机游戏状态，不联网，不涉及他人。
 
-**普通玩家请直接下载 [Releases](https://github.com/zhanshuguicai/pbz-trainer/releases) 里的 `PBZTrainer-1.0.1-win-x64.zip`（自带运行环境、加载器和一键安装脚本），然后照着 [使用教程](docs/使用教程.md) 一步步做。**
+**普通玩家请直接下载 [Releases](https://github.com/zhanshuguicai/pbz-trainer/releases) 里的 `PBZTrainer-2.0.1-win-x64.zip`（自带运行环境、加载器和一键安装脚本），然后照着 [使用教程](docs/使用教程.md) 一步步做。**
 
 ## 功能
 
@@ -22,6 +22,17 @@
 | 战斗辅助 | 自动弹反 / 闪避：游戏提前约 0.3 秒通知来袭攻击，修改器在命中前按下真实的弹反键或闪避键（仅游戏在前台时）；提前量可调，显示受击统计 |
 
 写入类功能默认关闭，每次启动修改器时都是关闭状态，关闭修改器时自动关闭；游戏版本未通过校验时一律停用。
+
+## 音乐文件夹与默认设置
+
+- 条件播放器的歌放在修改器旁边的 **`music`** 文件夹。在修改器里选歌时会自动复制进去，规则里保存的是相对路径，整个文件夹可以随意移动。
+- 发布包自带一套默认设置（`defaults` 文件夹）：4 条播放规则、音量、热键、自动弹反设置。只在第一次运行、还没有 `data` 设置时生效，升级不会覆盖你的设置。
+- **发布包和仓库都不包含歌曲**，因为歌曲有版权。默认规则用到下面两个文件，请自备后放进 `music` 文件夹，或者在“条件播放器”页给规则换成你自己的歌：
+
+| 文件名 | 触发时机 |
+|---|---|
+| `King+Gnu+-+AIZO.mp3` | 战斗中血量低于 50%；Boss 血量低于 70% |
+| `DJ阿黛+-+雨爱.mp3` | 战斗中药喝空；Boss 血量低于 35% |
 
 ## 兼容版本
 
@@ -48,7 +59,7 @@ dotnet build src/PBZManager/PBZManager.sln
 dotnet test src/PBZManager/PBZ.Core.Tests
 ```
 
-运行 `src/PBZManager/PBZManager/bin/Debug/net10.0-windows/PBZManager.exe`，在“状态”页点“安装 / 更新”把 PBZSuite 装进游戏（游戏需关闭）。修改器的设置保存在 exe 旁的 `data/`。
+运行 `src/PBZManager/PBZManager/bin/Debug/net10.0-windows/PBZManager.exe`，在“状态”页点“安装 / 更新”把 PBZSuite 装进游戏（游戏需关闭）。修改器的设置保存在 exe 旁的 `data/`，歌曲放在 exe 旁的 `music/`。
 
 ## 撤销
 

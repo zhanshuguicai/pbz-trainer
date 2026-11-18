@@ -1,0 +1,71 @@
+{
+  "enabled": true,
+  "volume": 0.6,
+  "fadeOutMs": 2000,
+  "rules": [
+    {
+      "id": "half50",
+      "name": "\u534A\u8840",
+      "enabled": true,
+      "trigger": "HealthBelow",
+      "thresholdPercent": 50,
+      "trackPath": "music\\King\u002BGnu\u002B-\u002BAIZO.mp3",
+      "priority": 1,
+      "scope": "OncePerBattle",
+      "stopTrigger": "BattleOver",
+      "stopThreshold": 80,
+      "conditions": {
+        "battle": "InBattle",
+        "boss": "Any"
+      }
+    },
+    {
+      "id": "flasks0",
+      "name": "\u836F\u559D\u7A7A",
+      "enabled": true,
+      "trigger": "FlasksEmpty",
+      "thresholdPercent": 0,
+      "trackPath": "music\\DJ\u963F\u9EDB\u002B-\u002B\u96E8\u7231.mp3",
+      "priority": 2,
+      "scope": "OncePerBattle",
+      "stopTrigger": "BattleOver",
+      "stopThreshold": 80,
+      "conditions": {
+        "battle": "InBattle",
+        "boss": "Any"
+      }
+    },
+    {
+      "id": "19a317f2",
+      "name": "\u65B0\u89C4\u5219",
+      "enabled": true,
+      "trigger": "BossHealthBelow",
+      "thresholdPercent": 35,
+      "trackPath": "music\\DJ\u963F\u9EDB\u002B-\u002B\u96E8\u7231.mp3",
+      "priority": 2,
+      "scope": "OncePerBattle",
+      "stopTrigger": "BattleOver",
+      "stopThreshold": 80,
+      "conditions": {
+        "battle": "InBattle",
+        "boss": "InBossFight"
+      }
+    },
+    {
+      "id": "bf825310",
+      "name": "\u65B0\u89C4\u5219",
+      "enabled": true,
+      "trigger": "BossHealthBelow",
+      "thresholdPercent": 70,
+      "trackPath": "music\\King\u002BGnu\u002B-\u002BAIZO.mp3",
+      "priority": 1,
+      "scope": "OncePerBattle",
+      "stopTrigger": "BattleOver",
+      "stopThreshold": 80,
+      "conditions": {
+        "battle": "InBattle",
+        "boss": "InBossFight"
+      }
+    }
+  ]
+}

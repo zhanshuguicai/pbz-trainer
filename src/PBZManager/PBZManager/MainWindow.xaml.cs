@@ -83,6 +83,7 @@ public partial class MainWindow : Window
         ScopeColumn.ItemsSource = RuleRow.Scopes;
         StopColumn.ItemsSource = RuleRow.StopTriggers;
         ItemGrid.ItemsSource = _items;
+        _music = MusicLibrary.Adopt(AppContext.BaseDirectory, _music); // songs chosen before the music folder existed
         InitScene();
         InitPlayer();
         RuleGrid.ItemsSource = _rules;
@@ -96,6 +97,9 @@ public partial class MainWindow : Window
             _hotkeys.Pressed += OnHotkey;
             ApplyHotkeys();
             await StartAsync();
+            var absent = MusicLibrary.Missing(AppContext.BaseDirectory, _music.Rules);
+            if (absent.Count > 0)
+                Say($"music 文件夹里缺少 {absent.Count} 首歌：{string.Join("、", absent.Select(Path.GetFileName))}。放进去后就能播放，详见 music\\README.txt");
         };
         Closed += (_, _) =>
         {
@@ -511,10 +515,10 @@ public partial class MainWindow : Window
         {
             Title = $"为\"{row.Name}\"选择歌曲（可多选，多首时触发时随机或轮流）",
             Filter = "音频文件|*.mp3;*.wav;*.wma;*.m4a;*.aac;*.flac|所有文件|*.*",
-            FileName = row.TrackPath ?? "",
+            InitialDirectory = MusicLibrary.Folder(AppContext.BaseDirectory),
             Multiselect = true,
         };
-        if (dialog.ShowDialog(this) == true) row.Tracks = dialog.FileNames;
+        if (dialog.ShowDialog(this) == true) row.Tracks = dialog.FileNames.Select(f => MusicLibrary.Import(AppContext.BaseDirectory, f)).ToList();
     }
 
     private void EditPlayback_Click(object sender, RoutedEventArgs e)
@@ -522,7 +526,7 @@ public partial class MainWindow : Window
         if ((sender as FrameworkElement)?.DataContext is not RuleRow row) return;
         var dialog = new PlaybackDialog(row.Name, row.Tracks, row.Playback) { Owner = this };
         if (dialog.ShowDialog() != true) return;
-        row.Tracks = dialog.Tracks.ToList();
+        row.Tracks = dialog.Tracks.Select(f => MusicLibrary.Import(AppContext.BaseDirectory, f)).ToList();
         row.Playback = dialog.Result;
     }
 
@@ -546,10 +550,10 @@ public partial class MainWindow : Window
         if (imported.Rules is not { Count: > 0 } rules) { Say("这个文件里没有规则"); return; }
         if (MessageBox.Show(this, $"用文件里的 {rules.Count} 条规则替换当前全部规则？（音量等总设置不变）", "导入规则",
                 MessageBoxButton.OKCancel, MessageBoxImage.Question) != MessageBoxResult.OK) return;
-        SaveMusic(_music with { Rules = rules });
+        SaveMusic(MusicLibrary.Adopt(AppContext.BaseDirectory, _music with { Rules = rules }));
         ShowMusicSettings();
-        var missing = rules.SelectMany(r => r.AllTracks).Count(t => !File.Exists(t));
-        Say($"已导入 {rules.Count} 条规则" + (missing > 0 ? $"，其中 {missing} 首歌在本机找不到，请重新选择" : ""));
+        var missing = MusicLibrary.Missing(AppContext.BaseDirectory, _music.Rules).Count;
+        Say($"已导入 {rules.Count} 条规则" + (missing > 0 ? $"，其中 {missing} 首歌在本机找不到，请放进 music 文件夹或重新选择" : ""));
     }
 
     // ---------- lock ----------

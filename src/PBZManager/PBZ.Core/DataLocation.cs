@@ -9,9 +9,13 @@ public static class DataLocation
     public static readonly string[] Files =
         ["settings.json", "lock.json", "pbzsuite-manifest.json", "exe-hash-cache.json", "events.log"];
 
+    // Shipped in the "defaults" folder next to the exe; used only when the data folder has no settings yet.
+    private static readonly string[] DefaultFiles = ["settings.json", "lock.json"];
+
     // Returns the data folder, creating it. If it holds none of the known files yet, fills it from the legacy
     // folders: each file is taken from the first legacy folder that has it (a manager started from Explorer and one
-    // started from a packaged app may each have written some of them). Returns the folders copied from.
+    // started from a packaged app may each have written some of them), and what is still absent from "defaults".
+    // Returns the legacy folders copied from.
     public static (string Dir, IReadOnlyList<string> MigratedFrom) Prepare(string exeDir, IEnumerable<string> legacyDirs)
     {
         var dir = Path.Combine(exeDir, "data");
@@ -26,6 +30,12 @@ public static class DataLocation
             File.Copy(src, Path.Combine(dir, f));
             var from = Path.GetDirectoryName(src)!;
             if (!used.Contains(from)) used.Add(from);
+        }
+        foreach (var f in DefaultFiles)
+        {
+            var shipped = Path.Combine(exeDir, "defaults", f);
+            var target = Path.Combine(dir, f);
+            if (File.Exists(shipped) && !File.Exists(target)) File.Copy(shipped, target);
         }
         return (dir, used);
     }

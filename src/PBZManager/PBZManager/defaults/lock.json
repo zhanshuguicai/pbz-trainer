@@ -1,0 +1,25 @@
+{
+  "health": true,
+  "shachi": true,
+  "ultimate": true,
+  "spirit": true,
+  "sound": true,
+  "hotkeys": {
+    "toggle": "Ctrl\u002BF1",
+    "health": "Ctrl\u002BF2",
+    "shachi": "Ctrl\u002BF3",
+    "ultimate": "Ctrl\u002BF4",
+    "spirit": "Ctrl\u002BF5",
+    "parry": "F7",
+    "musicstop": "Ctrl\u002BF6",
+    "musictoggle": "Ctrl\u002BF8"
+  },
+  "parryDeflect": true,
+  "parryDodge": true,
+  "parryLeadMs": 100,
+  "parryDeflectKey": "RightMouse",
+  "parryDodgeKey": "LeftShift",
+  "parryComboHold": true,
+  "parryActions": null,
+  "values": {}
+}

@@ -6,17 +6,17 @@
 - 任务表与完成标准：[P4 任务](docs/p4-tasks.md)；产品规则（用户确认 + Claude 决定，逐条标来源）：[产品规则](docs/decisions/2026-11-03-product-rules.md)
 - 游戏数据读法与实测现象：[三字段数据来源](docs/p2-field-sources.md)；最初的交接规划：[完整交接](docs/影之刃零Mod_Claude完整交接与实施规划_20261103.md)（历史背景，状态以本文件为准）
 
-## 当前状态（2026-11-12，版本 2.0.0 已发布）
+## 当前状态（2026-11-18，版本 2.0.1 已发布）
 - 全部功能完成并经用户实测：状态与遥测、条件播放器（22 种事件含 Boss、附加条件、淡出、每条规则播放设置、热键、导入导出）、数值修改（锁满/固定值）、物品与钱、自动弹反/闪避（真实按键，未受击约 85%）。界面按《影之刃零》风格重做。
-- 版本 2.0.0（修改器与 PBZSuite；1.0.2、1.0.3 未单独发布，并入 2.0.0）。2.0.0 已推送并发布：https://github.com/zhanshuguicai/pbz-trainer/releases/tag/v2.0.0 （附 `PBZTrainer-2.0.0-win-x64.zip`）。此前 1.0.1：公开仓库 https://github.com/zhanshuguicai/pbz-trainer（main，标签 v1.0.1 = 提交 e648ff9），只含代码与文档；本机目录即该仓库的工作副本。Release：https://github.com/zhanshuguicai/pbz-trainer/releases/tag/v1.0.1 ，附 `PBZTrainer-1.0.1-win-x64.zip`（自带运行时的单文件修改器、加载器、一键脚本、保姆式教程 docs/使用教程.md）。
+- 修改器 2.0.1，PBZSuite 2.0.0（1.0.2、1.0.3 未单独发布，并入 2.0.0）。最新发布：https://github.com/zhanshuguicai/pbz-trainer/releases/tag/v2.0.1 （附 `PBZTrainer-2.0.1-win-x64.zip`，含默认设置和空的 music 文件夹，**不含歌曲**）。此前 1.0.1：公开仓库 https://github.com/zhanshuguicai/pbz-trainer（main，标签 v1.0.1 = 提交 e648ff9），只含代码与文档；本机目录即该仓库的工作副本。Release：https://github.com/zhanshuguicai/pbz-trainer/releases/tag/v1.0.1 ，附 `PBZTrainer-1.0.1-win-x64.zip`（自带运行时的单文件修改器、加载器、一键脚本、保姆式教程 docs/使用教程.md）。
 - 游戏：Steam appid 4115450，已验证 build 26266538 与 26367565（2026-11-04 03:29 更新）。游戏更新后修改器自动停用写入功能。
 - 游戏目录：UE4SS + PR #1484 配置、`Mods/PBZSuite`（游戏里是 1.0.0 的 Boss 修复版，1.0.1 只差版本号，待用修改器更新）、`Mods/PBZProbe`（只读探针）。
-- 代码：`src/PBZSuite/`（Lua）、`src/PBZManager/PBZManager.sln`（PBZ.Core、117 个测试、WPF）。修改器数据在 exe 旁 `data\`。
-- **用户实际运行的是桌面副本 `C:\Users\38365\Desktop\net10.0-windows\PBZManager.exe`（有自己的 `data\`：规则、热键、提前量 100、连段按住开）**，不是项目 bin 里那份。2026-11-07 覆盖为 1.0.2；2026-11-12 已覆盖为 2.0.0（data 未动）；游戏内 PBZSuite 仍是 1.0.2，待用户在该修改器里点"安装 / 更新"。以后更新：关掉它 → 复制 bin\Debug\net10.0-windows 下除 data 外的全部文件过去。
+- 代码：`src/PBZSuite/`（Lua）、`src/PBZManager/PBZManager.sln`（PBZ.Core、123 个测试、WPF）。修改器数据在 exe 旁 `data\`。
+- **用户实际运行的是桌面副本 `C:\Users\38365\Desktop\net10.0-windows\PBZManager.exe`（有自己的 `data\`：规则、热键、提前量 100、连段按住开）**，不是项目 bin 里那份。2026-11-07 覆盖为 1.0.2；2026-11-18 已覆盖为 2.0.1（data 保留，两首歌已在其 music 文件夹）；游戏内 PBZSuite 仍是 1.0.2，待用户在该修改器里点"安装 / 更新"。以后更新：关掉它 → 复制 bin\Debug\net10.0-windows 下除 data 外的全部文件过去。
 - 用户未要求派工，全部由 Claude（Opus）执行。
 
 ## 进行中
-- 2.0.0 已发布：1.0.2 自动弹反 + 场景修复页 + 玩家工具页（游戏/移动速度、伤害倍率、无限药、飞行、传送、等级经验）。117 个测试通过，**游戏内全部未实测**。日志：[玩家工具](docs/worklog/2026-11-12-player-tools-claude.md)、[场景修复与复查](docs/worklog/2026-11-12-scene-repair-review-claude.md)、[弹反 1.0.2](docs/worklog/2026-11-07-parry-timing-types-claude.md)。
+- 2.0.1 已发布（[日志](docs/worklog/2026-11-18-music-folder-defaults-claude.md)）。2.0.0 内容：1.0.2 自动弹反 + 场景修复页 + 玩家工具页（游戏/移动速度、伤害倍率、无限药、飞行、传送、等级经验）。117 个测试通过，**游戏内全部未实测**。日志：[玩家工具](docs/worklog/2026-11-12-player-tools-claude.md)、[场景修复与复查](docs/worklog/2026-11-12-scene-repair-review-claude.md)、[弹反 1.0.2](docs/worklog/2026-11-07-parry-timing-types-claude.md)。
 
 ## 下一步
 1. 用户在桌面副本点"安装 / 更新"到 PBZSuite 2.0.0（用户拒绝了电脑控制，实测由用户做）→ 逐项实测：戏梦山庄画前"场景修复"扫描并溶解；玩家工具各项（看 UE4SS.log 的 `player op`、`scale ... error`）；实战弹反（对照 `parry #序号` 与 `data\parry-relay.log`），遇黑光记下时间。
@@ -39,7 +39,7 @@
 - **两份 PBZSuite 清单**：修改器的（%LOCALAPPDATA%）和脚本的（`evidence/pbzsuite-manifest.json`）；今后只用修改器装卸。
 - **待用户确认的 Claude 决定**：脱战确认 5 s（规则 9）；数值修改默认热键、提示音、血量下限 1（规则 15、16）。
 - 存档在游戏目录 `ProjectPBZ/Saved`（不在 AppData）；最近备份 `backups/before-t8-20261104-005928`。不要自动用旧备份覆盖存档。
-- 音频在 `E:/Downloads`（AIZO.mp3、DJ阿黛-雨爱.mp3）；只存路径，不复制进项目或包。
+- 歌曲放在 exe 旁的 `music` 文件夹，规则存相对路径。**歌曲有版权，不进公开仓库和发布包**；用户本机原文件在 `E:/Downloads`。
 - 游戏开着时 Windows 不刷新遥测文件的大小/时间，按文件名选最新会话（已在 TelemetryTailer 处理）。
 - `ProcessConsoleExec` 钩子装不上，游戏内控制台不可用；`pc.CheatManager` 为空，没有现成作弊命令。
 - 测试项目固定了本机 NuGet 缓存里已有的版本（MSTest 3.6.4、Test.Sdk 17.14.1），改版本会触发联网下载。
@@ -55,8 +55,8 @@
 - 全部撤销（游戏退出后，按顺序）：修改器"卸载"或 `tools/pbzsuite.ps1 -Mode Rollback` → `probe/p2-probe.ps1 -Mode Rollback` → `probe/p1-loader.ps1 -Mode Rollback`。
 
 ## 最近工作日志
+- [2.0.1：music 文件夹与默认设置](docs/worklog/2026-11-18-music-folder-defaults-claude.md)
 - [2.0.0 发布包、Release、桌面副本](docs/worklog/2026-11-12-release-200-package-claude.md)
 - [2.0.0 版本号与推送](docs/worklog/2026-11-12-release-200-claude.md)
 - [玩家工具 1.0.3、提交](docs/worklog/2026-11-12-player-tools-claude.md)
 - [场景修复 1.0.3、复查、调研](docs/worklog/2026-11-12-scene-repair-review-claude.md)
-- [自动弹反 1.0.2：精确排程、连段、攻击类型](docs/worklog/2026-11-07-parry-timing-types-claude.md)

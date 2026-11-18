@@ -51,10 +51,10 @@ public sealed class WpfAudioOutput : IAudioOutput
 
     public void Play(string key, PlayRequest request)
     {
-        var path = request.Path;
+        var path = PBZ.Core.Music.MusicLibrary.Resolve(AppContext.BaseDirectory, request.Path);
         if (!File.Exists(path))
         {
-            Error?.Invoke($"找不到音频文件：{path}");
+            Error?.Invoke($"找不到音频文件：{path}（请把歌放进程序旁的 music 文件夹）");
             return;
         }
         _fade.Stop();

@@ -16,3 +16,11 @@ release/loader-install-manifest.json
 # Files the game writes at run time (only the README is part of the suite)
 src/PBZSuite/runtime/*
 !src/PBZSuite/runtime/README.txt
+
+# Songs are copyrighted: they stay on the local computer
+**/music/*.mp3
+**/music/*.flac
+**/music/*.wav
+**/music/*.m4a
+**/music/*.aac
+**/music/*.wma
